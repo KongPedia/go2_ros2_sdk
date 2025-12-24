@@ -31,6 +31,8 @@ class CocoDetectorNode(Node):
     Also publishes augmented image with bounding boxes on /annotated_image.
     """
 
+    _EXPORTED_MODEL_EXTENSIONS = (".engine", ".onnx", ".tflite", ".xml", ".trt")
+
     # pylint: disable=R0902 disable too many instance variables warning for this class
     def __init__(self, model_path: str = "yolov8n.pt"):
         super().__init__("coco_detector_node")
@@ -67,9 +69,9 @@ class CocoDetectorNode(Node):
         # Load YOLO model and move to target device, with safety fallback from CUDA to CPU
         model_path = self.get_parameter('model_path').get_parameter_value().string_value
         lower_model_path = model_path.lower()
-        self._yolo_predict_only = lower_model_path.endswith((".engine", ".onnx", ".tflite", ".xml", ".trt"))
+        self._skip_device_transfer = lower_model_path.endswith(self._EXPORTED_MODEL_EXTENSIONS)
         self.model = YOLO(model_path, task="detect")
-        if not self._yolo_predict_only:
+        if not self._skip_device_transfer:
             try:
                 self.model.to(self.device)
             except RuntimeError as exc:  # e.g. CUDA allocator / NVML errors
