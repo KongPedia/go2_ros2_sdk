@@ -7,9 +7,9 @@ from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import LaunchConfiguration, PythonExpression
-from launch_ros.actions import Node
+from launch_ros.actions import Node, SetRemap
 from launch_ros.parameter_descriptions import ParameterValue
-from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
+from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument, GroupAction
 from launch.launch_description_sources import FrontendLaunchDescriptionSource, PythonLaunchDescriptionSource
 
 
@@ -313,6 +313,7 @@ class Go2NodeFactory:
                     {'use_sim_time': use_sim_time},
                     self.config.config_paths['twist_mux']
                 ],
+                remappings=[('cmd_vel', 'cmd_vel_out')],
             ),
         ]
     
@@ -387,17 +388,22 @@ class Go2NodeFactory:
                 }.items(),
             ),
             # Nav2 (Navigation Mode - Always run)
-            IncludeLaunchDescription(
-                PythonLaunchDescriptionSource([
-                    os.path.join(get_package_share_directory('nav2_bringup'),
-                                'launch', 'navigation_launch.py')
-                ]),
+            GroupAction(
                 condition=IfCondition(with_nav2),
-                launch_arguments={
-                    'params_file': self.config.config_paths['nav2'],
-                    'use_sim_time': use_sim_time,
-                    'map_subscribe_transient_local': 'true',
-                }.items(),
+                actions=[
+                    SetRemap(src='cmd_vel', dst='cmd_vel_nav'),
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource([
+                            os.path.join(get_package_share_directory('nav2_bringup'),
+                                        'launch', 'navigation_launch.py')
+                        ]),
+                        launch_arguments={
+                            'params_file': self.config.config_paths['nav2'],
+                            'use_sim_time': use_sim_time,
+                            'map_subscribe_transient_local': 'true',
+                        }.items(),
+                    )
+                ]
             ),
         ]
 

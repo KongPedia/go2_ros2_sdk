@@ -63,6 +63,7 @@ bt_navigator:
     robot_base_frame: base_link
     odom_topic: odom
     bt_loop_duration: 50
+    default_nav_to_pose_bt_xml: "/ros2_ws/install/go2_robot_sdk/share/go2_robot_sdk/config/navigate_to_pose_custom.xml"
     default_server_timeout: 5
     plugin_lib_names:
     - nav2_compute_path_to_pose_action_bt_node
@@ -389,6 +390,7 @@ behavior_server:
 
     spin:
       plugin: "nav2_behaviors/Spin"
+      rotational_vel: 0.2 # [튜닝] 회전 속도 (너무 빠르면 라이다 매칭 실패)
     backup:
       plugin: "nav2_behaviors/BackUp"
     drive_on_heading:
