@@ -16,9 +16,10 @@ from sensor_msgs.msg import Image
 from vision_msgs.msg import BoundingBox2D, ObjectHypothesis, ObjectHypothesisWithPose
 from vision_msgs.msg import Detection2D, Detection2DArray
 from cv_bridge import CvBridge
-import torch
-from ultralytics import YOLO
 import cv2
+
+torch = None
+YOLO = None
 
 
 Detection = collections.namedtuple("Detection", "label, bbox, score")
@@ -35,6 +36,17 @@ class CocoDetectorNode(Node):
 
     # pylint: disable=R0902 disable too many instance variables warning for this class
     def __init__(self, model_path: str = "yolov8n.pt"):
+        global torch, YOLO
+        if torch is None or YOLO is None:
+            try:
+                import torch as _torch
+                from ultralytics import YOLO as _YOLO
+
+                torch = _torch
+                YOLO = _YOLO
+            except Exception as exc:
+                raise RuntimeError("torch and ultralytics are required to run CocoDetectorNode") from exc
+
         super().__init__("coco_detector_node")
         # device parameter: try to use GPU (cuda) by default, fall back to cpu if unavailable
         self.declare_parameter('device', 'cuda')
