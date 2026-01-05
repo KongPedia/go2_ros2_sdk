@@ -27,3 +27,21 @@ runs/
 *.engine.plan.txt.gz.part.1
 *.engine.plan.txt.gz.part.2
 *.engine.plan.txt.gz.part.3
+
+# 1. Python 빌드 및 메타데이터 (질문하신 부분)
+*.egg-info/
+build/
+dist/
+
+.vscode/
+.idea/
+
+models/
+
+# Pytest & Coverage artifacts
+.coverage
+.coverage.*
+coverage.xml
+pytest-report.xml
+htmlcov/
+.pytest_cache/
