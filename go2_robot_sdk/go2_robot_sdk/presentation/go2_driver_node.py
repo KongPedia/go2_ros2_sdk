@@ -21,6 +21,7 @@ from go2_interfaces.msg import Go2State, IMU
 from go2_interfaces.msg import LowState, VoxelMapCompressed, WebRtcReq
 from sensor_msgs.msg import PointCloud2, JointState, Joy, Image, CameraInfo
 from nav_msgs.msg import Odometry
+from std_msgs.msg import Float32
 
 from ..domain.entities import RobotConfig, RobotData, CameraData
 from ..application.services import RobotDataService, RobotControlService
@@ -185,6 +186,7 @@ class Go2DriverNode(Node):
             "lidar": [],
             "odometry": [],
             "imu": [],
+            "battery": [],
             "camera": [],
             "camera_info": [],
             "voxel": [],
@@ -200,6 +202,7 @@ class Go2DriverNode(Node):
                 lidar_topic = "point_cloud2"
                 odom_topic = "odom"
                 imu_topic = "imu"
+                battery_topic = "battery"
                 camera_topic = "camera/image_raw"
                 camera_info_topic = "camera/camera_info"
                 voxel_topic = "/utlidar/voxel_map_compressed"
@@ -210,6 +213,7 @@ class Go2DriverNode(Node):
                 lidar_topic = f"{prefix}/point_cloud2"
                 odom_topic = f"{prefix}/odom"
                 imu_topic = f"{prefix}/imu"
+                battery_topic = f"{prefix}/battery"
                 camera_topic = f"{prefix}/camera/image_raw"
                 camera_info_topic = f"{prefix}/camera/camera_info"
                 voxel_topic = f"{prefix}/utlidar/voxel_map_compressed"
@@ -233,6 +237,7 @@ class Go2DriverNode(Node):
                 self.create_publisher(Odometry, odom_topic, qos_profile)
             )
             publishers["imu"].append(self.create_publisher(IMU, imu_topic, qos_profile))
+            publishers["battery"].append(self.create_publisher(Float32, battery_topic, qos_profile))
 
             if self.config.enable_video:
                 publishers["camera"].append(
