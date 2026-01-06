@@ -159,14 +159,11 @@ class RobotDataService:
                 motor_state=low_state_data['motor_state']
             )
 
-            bms_state = low_state_data.get("bms_state") if isinstance(low_state_data, dict) else None
-            soc = None
-            if isinstance(bms_state, dict):
+            bms_state = low_state_data.get("bms_state") 
+            if isinstance(low_state_data, dict):
                 soc_val = bms_state.get("soc")
-                if isinstance(soc_val, (int, float)) and math.isfinite(float(soc_val)):
-                    soc = float(soc_val)
-            if soc is not None:
-                robot_data.battery_soc = soc
+                if soc_val is not None and isinstance(soc_val, (int, float)) and math.isfinite(float(soc_val)):
+                    robot_data.battery_soc = float(soc_val)
         except Exception as e:
             logger.error(f"Error processing low state: {e}")
 

@@ -182,13 +182,23 @@ class ROS2Publisher(IRobotDataPublisher):
 
             self.publishers["joint_state"][robot_idx].publish(joint_state)
 
-            if robot_data.battery_soc is not None:
-                battery_msg = Float32()
-                battery_msg.data = float(robot_data.battery_soc)
-                self.publishers["battery"][robot_idx].publish(battery_msg)
-
         except Exception as e:
             logger.error(f"Error publishing joint state: {e}")
+            return
+
+        self._publish_battery_state(robot_data, robot_idx)
+
+    def _publish_battery_state(self, robot_data: RobotData, robot_idx: int) -> None:
+        """Publish battery state separately to keep error handling accurate."""
+        if robot_data.battery_soc is None:
+            return
+
+        try:
+            battery_msg = Float32()
+            battery_msg.data = float(robot_data.battery_soc)
+            self.publishers["battery"][robot_idx].publish(battery_msg)
+        except Exception as e:
+            logger.error(f"Error publishing battery state: {e}")
 
     def publish_robot_state(self, robot_data: RobotData) -> None:
         """Publish robot state and IMU data"""
