@@ -40,6 +40,7 @@ class RobotDataService:
             elif topic == RTC_TOPIC["LOW_STATE"]:
                 self._process_low_state(msg, robot_data)
                 self.publisher.publish_joint_state(robot_data)
+                self.publisher.publish_battery_state(robot_data)
 
         except Exception as e:
             logger.error(f"Error processing WebRTC message: {e}")

@@ -186,14 +186,13 @@ class ROS2Publisher(IRobotDataPublisher):
             logger.error(f"Error publishing joint state: {e}")
             return
 
-        self._publish_battery_state(robot_data, robot_idx)
-
-    def _publish_battery_state(self, robot_data: RobotData, robot_idx: int) -> None:
+    def publish_battery_state(self, robot_data: RobotData) -> None:
         """Publish battery state separately to keep error handling accurate."""
         if robot_data.battery_soc is None:
             return
 
         try:
+            robot_idx = int(robot_data.robot_id)
             battery_msg = Float32()
             battery_msg.data = float(robot_data.battery_soc)
             self.publishers["battery"][robot_idx].publish(battery_msg)
