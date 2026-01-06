@@ -13,6 +13,7 @@ from go2_interfaces.msg import Go2State, IMU
 from go2_interfaces.msg import VoxelMapCompressed
 from sensor_msgs.msg import PointCloud2, PointField, JointState
 from std_msgs.msg import Header
+from std_msgs.msg import Float32
 from nav_msgs.msg import Odometry
 from cv_bridge import CvBridge
 
@@ -183,6 +184,20 @@ class ROS2Publisher(IRobotDataPublisher):
 
         except Exception as e:
             logger.error(f"Error publishing joint state: {e}")
+            return
+
+    def publish_battery_state(self, robot_data: RobotData) -> None:
+        """Publish battery state separately to keep error handling accurate."""
+        if robot_data.battery_soc is None:
+            return
+
+        try:
+            robot_idx = int(robot_data.robot_id)
+            battery_msg = Float32()
+            battery_msg.data = float(robot_data.battery_soc)
+            self.publishers["battery"][robot_idx].publish(battery_msg)
+        except Exception as e:
+            logger.error(f"Error publishing battery state: {e}")
 
     def publish_robot_state(self, robot_data: RobotData) -> None:
         """Publish robot state and IMU data"""

@@ -78,3 +78,4 @@ class RobotData:
     joint_data: Optional[JointData] = None
     lidar_data: Optional[LidarData] = None
     camera_data: Optional[CameraData] = None 
+    battery_soc: Optional[float] = None

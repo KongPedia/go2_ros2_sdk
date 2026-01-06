@@ -40,6 +40,7 @@ class RobotDataService:
             elif topic == RTC_TOPIC["LOW_STATE"]:
                 self._process_low_state(msg, robot_data)
                 self.publisher.publish_joint_state(robot_data)
+                self.publisher.publish_battery_state(robot_data)
 
         except Exception as e:
             logger.error(f"Error processing WebRTC message: {e}")
@@ -158,6 +159,12 @@ class RobotDataService:
             robot_data.joint_data = JointData(
                 motor_state=low_state_data['motor_state']
             )
+
+            bms_state = low_state_data.get("bms_state") 
+            if isinstance(low_state_data, dict):
+                soc_val = bms_state.get("soc")
+                if soc_val is not None and isinstance(soc_val, (int, float)) and math.isfinite(float(soc_val)):
+                    robot_data.battery_soc = float(soc_val)
         except Exception as e:
             logger.error(f"Error processing low state: {e}")
 
