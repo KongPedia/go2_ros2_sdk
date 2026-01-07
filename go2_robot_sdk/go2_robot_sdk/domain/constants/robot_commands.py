@@ -53,4 +53,11 @@ ROBOT_CMD = {
     "OnesidedStep": 1303,
     "CrossStep": 1302,
     "Handstand": 1301,
+    # VUI (Visual User Interface) commands
+    "VuiSetSwitch": 1001,
+    "VuiGetSwitch": 1002,
+    "VuiSetVolume": 1003,
+    "VuiGetVolume": 1004,
+    "VuiSetBrightness": 1005,
+    "VuiGetBrightness": 1006,
 } 
