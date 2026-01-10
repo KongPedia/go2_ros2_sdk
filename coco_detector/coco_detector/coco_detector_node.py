@@ -7,8 +7,8 @@ Bounding Boxes use image convention, ie center.y = 0 means top of image.
 """
 
 import collections
+import os
 
-import numpy as np
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
@@ -20,6 +20,7 @@ import cv2
 
 torch = None
 YOLO = None
+DEFAULT_YOLO_IMGSZ = int(os.getenv("YOLO_IMGSZ", "512"))
 
 
 Detection = collections.namedtuple("Detection", "label, bbox, score")
@@ -151,7 +152,7 @@ class CocoDetectorNode(Node):
         # Run YOLO model inference
         results = self.model(
             cv_image,
-            imgsz=256,
+            imgsz=DEFAULT_YOLO_IMGSZ,
             half=True,
             classes=[self.person_label_index],  # only detect person class
         )[0]
