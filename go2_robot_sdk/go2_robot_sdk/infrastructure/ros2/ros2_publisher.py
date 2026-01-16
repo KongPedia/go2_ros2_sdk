@@ -34,7 +34,7 @@ class ROS2Publisher(IRobotDataPublisher):
         node: Node,
         config: RobotConfig,
         publishers: dict,
-        broadcaster: TransformBroadcaster,
+        broadcaster: list,
     ):
         self.node = node
         self.config = config
@@ -75,13 +75,12 @@ class ROS2Publisher(IRobotDataPublisher):
     def _publish_transform(self, robot_data: RobotData, robot_idx: int) -> None:
         """Publish TF transform"""
         odom_trans = TransformStamped()
-        odom_trans.header.stamp = self.node.get_clock().now().to_msg()
+        odom_trans.header.stamp = robot_data.timestamp
         odom_trans.header.frame_id = "odom"
 
-        if self.config.conn_mode == "single":
-            odom_trans.child_frame_id = "base_link"
-        else:
-            odom_trans.child_frame_id = f"robot{robot_data.robot_id}/base_link"
+
+        odom_trans.child_frame_id = "base_link"
+
 
         position = robot_data.odometry_data.position
         orientation = robot_data.odometry_data.orientation
@@ -94,19 +93,19 @@ class ROS2Publisher(IRobotDataPublisher):
         odom_trans.transform.rotation.y = float(orientation["y"])
         odom_trans.transform.rotation.z = float(orientation["z"])
         odom_trans.transform.rotation.w = float(orientation["w"])
-
-        self.broadcaster.sendTransform(odom_trans)
+        if self.config.conn_mode == "single":
+            self.broadcaster.sendTransform(odom_trans)
+        else:
+            self.broadcaster[robot_idx].sendTransform(odom_trans)
 
     def _publish_odometry_topic(self, robot_data: RobotData, robot_idx: int) -> None:
         """Publish Odometry topic"""
         odom_msg = Odometry()
-        odom_msg.header.stamp = self.node.get_clock().now().to_msg()
-        odom_msg.header.frame_id = "odom"
+        odom_msg.header.stamp = robot_data.timestamp
 
-        if self.config.conn_mode == "single":
-            odom_msg.child_frame_id = "base_link"
-        else:
-            odom_msg.child_frame_id = f"robot{robot_data.robot_id}/base_link"
+        odom_msg.header.frame_id = "odom"
+        odom_msg.child_frame_id = "base_link"
+
 
         position = robot_data.odometry_data.position
         orientation = robot_data.odometry_data.orientation
@@ -130,39 +129,23 @@ class ROS2Publisher(IRobotDataPublisher):
         try:
             robot_idx = int(robot_data.robot_id)
             joint_state = JointState()
-            joint_state.header.stamp = self.node.get_clock().now().to_msg()
+            joint_state.header.stamp = robot_data.timestamp
 
             # Define joint names
-            if self.config.conn_mode == "single":
-                joint_state.name = [
-                    "FL_hip_joint",
-                    "FL_thigh_joint",
-                    "FL_calf_joint",
-                    "FR_hip_joint",
-                    "FR_thigh_joint",
-                    "FR_calf_joint",
-                    "RL_hip_joint",
-                    "RL_thigh_joint",
-                    "RL_calf_joint",
-                    "RR_hip_joint",
-                    "RR_thigh_joint",
-                    "RR_calf_joint",
-                ]
-            else:
-                joint_state.name = [
-                    f"robot{robot_data.robot_id}/FL_hip_joint",
-                    f"robot{robot_data.robot_id}/FL_thigh_joint",
-                    f"robot{robot_data.robot_id}/FL_calf_joint",
-                    f"robot{robot_data.robot_id}/FR_hip_joint",
-                    f"robot{robot_data.robot_id}/FR_thigh_joint",
-                    f"robot{robot_data.robot_id}/FR_calf_joint",
-                    f"robot{robot_data.robot_id}/RL_hip_joint",
-                    f"robot{robot_data.robot_id}/RL_thigh_joint",
-                    f"robot{robot_data.robot_id}/RL_calf_joint",
-                    f"robot{robot_data.robot_id}/RR_hip_joint",
-                    f"robot{robot_data.robot_id}/RR_thigh_joint",
-                    f"robot{robot_data.robot_id}/RR_calf_joint",
-                ]
+            joint_state.name = [
+                "FL_hip_joint",
+                "FL_thigh_joint",
+                "FL_calf_joint",
+                "FR_hip_joint",
+                "FR_thigh_joint",
+                "FR_calf_joint",
+                "RL_hip_joint",
+                "RL_thigh_joint",
+                "RL_calf_joint",
+                "RR_hip_joint",
+                "RR_thigh_joint",
+                "RR_calf_joint",
+            ]
 
             motor_state = robot_data.joint_data.motor_state
             joint_state.position = [
@@ -415,12 +398,8 @@ class ROS2Publisher(IRobotDataPublisher):
             camera_info = self.camera_info[camera.height]
             camera_info.header.stamp = ros_image.header.stamp
 
-            if self.config.conn_mode == "single":
-                camera_info.header.frame_id = "front_camera"
-                ros_image.header.frame_id = "front_camera"
-            else:
-                camera_info.header.frame_id = f"robot{robot_data.robot_id}/front_camera"
-                ros_image.header.frame_id = f"robot{robot_data.robot_id}/front_camera"
+            camera_info.header.frame_id = "front_camera"
+            ros_image.header.frame_id = "front_camera"
 
             # Publish
             self.publishers["camera"][robot_idx].publish(ros_image)

@@ -19,11 +19,11 @@ from tf2_ros import TransformBroadcaster
 from geometry_msgs.msg import Twist, PoseStamped
 from go2_interfaces.msg import Go2State, IMU
 from go2_interfaces.msg import LowState, VoxelMapCompressed, WebRtcReq
-from sensor_msgs.msg import PointCloud2, JointState, Joy, Image, CameraInfo
+from sensor_msgs.msg import PointCloud2, JointState, Joy, Image, CameraInfo, LaserScan
 from nav_msgs.msg import Odometry
 from std_msgs.msg import Float32
 
-from ..domain.entities import RobotConfig, RobotData, CameraData
+from ..domain.entities import RobotConfig, RobotData, CameraData, JointData, OdometryData
 from ..application.services import RobotDataService, RobotControlService
 from ..infrastructure.ros2 import ROS2Publisher
 from ..infrastructure.webrtc import WebRTCAdapter
@@ -45,7 +45,12 @@ class Go2DriverNode(Node):
 
         # Infrastructure initialization
         self.publishers_dict = self._setup_publishers()
-        self.broadcaster = TransformBroadcaster(self, qos=QoSProfile(depth=10))
+        self.broadcaster = [] 
+        if self.config.conn_mode == "single":
+            self.broadcaster.append(TransformBroadcaster(self, qos=QoSProfile(depth=10)))
+        else:
+            for i in range(len(self.config.robot_ip_list)):
+                self.broadcaster.append(TransformBroadcaster(self, qos=QoSProfile(depth=10), topic_name=f"/robot{i}/tf"))
         self.bridge = CvBridge()
 
         # Architecture layers initialization
@@ -83,7 +88,6 @@ class Go2DriverNode(Node):
         robot_ip = os.getenv("ROBOT_IP", os.getenv("GO2_IP", ""))
         token = os.getenv("ROBOT_TOKEN", os.getenv("GO2_TOKEN", ""))
         conn_type = os.getenv("CONN_TYPE", "")
-
         use_cpp_default = os.getenv("LIDAR_USE_CPP_ACCEL", "true").strip().lower() in (
             "1",
             "true",
@@ -179,11 +183,13 @@ class Go2DriverNode(Node):
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=1,
         )
+        qos_profile_odom = QoSProfile(depth=1)
 
         publishers = {
             "joint_state": [],
             "robot_state": [],
             "lidar": [],
+            "scan" : [],
             "odometry": [],
             "imu": [],
             "battery": [],
@@ -191,8 +197,8 @@ class Go2DriverNode(Node):
             "camera_info": [],
             "voxel": [],
         }
-
         num_robots = len(self.config.robot_ip_list)
+
 
         for i in range(num_robots):
             # Define topics depending on connection mode
@@ -206,6 +212,8 @@ class Go2DriverNode(Node):
                 camera_topic = "camera/image_raw"
                 camera_info_topic = "camera/camera_info"
                 voxel_topic = "/utlidar/voxel_map_compressed"
+                scan_topic = "/scan"
+
             else:
                 prefix = f"robot{i}"
                 joint_topic = f"{prefix}/joint_states"
@@ -217,6 +225,8 @@ class Go2DriverNode(Node):
                 camera_topic = f"{prefix}/camera/image_raw"
                 camera_info_topic = f"{prefix}/camera/camera_info"
                 voxel_topic = f"{prefix}/utlidar/voxel_map_compressed"
+                scan_topic = f"{prefix}/scan"
+
 
             # Create publishers
             publishers["joint_state"].append(
@@ -233,8 +243,16 @@ class Go2DriverNode(Node):
                     qos_overriding_options=QoSOverridingOptions.with_default_policies(),
                 )
             )
+            publishers["scan"].append(
+                self.create_publisher(
+                    LaserScan,
+                    scan_topic,
+                    best_effort_qos,
+                    qos_overriding_options=QoSOverridingOptions.with_default_policies(),
+                )
+            )
             publishers["odometry"].append(
-                self.create_publisher(Odometry, odom_topic, qos_profile)
+                self.create_publisher(Odometry, odom_topic, qos_profile_odom)
             )
             publishers["imu"].append(self.create_publisher(IMU, imu_topic, qos_profile))
             publishers["battery"].append(self.create_publisher(Float32, battery_topic, qos_profile))
@@ -269,9 +287,14 @@ class Go2DriverNode(Node):
     def _setup_subscribers(self) -> None:
         """ROS2 subscribers setup"""
         qos_profile = QoSProfile(depth=10)
-
+        best_effort_qos = QoSProfile(
+            reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=1,
+        )
         # Command subscribers
         num_robots = len(self.config.robot_ip_list)
+
 
         if self.config.conn_mode == "single":
             self.create_subscription(
@@ -306,18 +329,26 @@ class Go2DriverNode(Node):
 
         # CycloneDDS support
         if self.config.conn_type == "cyclonedds":
-            self.create_subscription(
-                LowState, "lowstate", self._on_cyclonedds_low_state, qos_profile
-            )
-            self.create_subscription(
-                PoseStamped,
-                "/utlidar/robot_pose",
-                self._on_cyclonedds_pose,
-                qos_profile,
-            )
-            self.create_subscription(
-                PointCloud2, "/utlidar/cloud", self._on_cyclonedds_lidar, qos_profile
-            )
+            for i in range(num_robots):
+                robot_id = str(i)
+                prefix = f"env{i}/" if self.config.conn_mode == "multi" else ""
+
+                self.create_subscription(
+                    JointState, f"{prefix}joint_states", 
+                    lambda msg, rid=robot_id: self._on_cyclonedds_low_state(msg, rid), qos_profile
+                )
+                self.create_subscription(
+                    Odometry, f"{prefix}odom", 
+                    lambda msg, rid=robot_id: self._on_cyclonedds_pose(msg, rid), qos_profile
+                )
+                self.create_subscription(
+                    PointCloud2, f"{prefix}point_cloud2", 
+                    lambda msg, rid=robot_id: self._on_cyclonedds_lidar_3d(msg, rid), best_effort_qos
+                )
+                # self.create_subscription(
+                #     LaserScan, f"{prefix}scan", 
+                #     lambda msg, rid=robot_id: self._on_cyclonedds_lidar_2d(msg, rid), best_effort_qos
+                # )
 
     def _on_set_parameters(self, params) -> SetParametersResult:
         """Callback for parameter changes"""
@@ -418,20 +449,72 @@ class Go2DriverNode(Node):
                 break
 
     # CycloneDDS callbacks
-    def _on_cyclonedds_low_state(self, msg: LowState) -> None:
-        """Processing LowState for CycloneDDS"""
-        # You can add processing for CycloneDDS here if needed
-        pass
+    def _on_cyclonedds_low_state(self, msg: JointState, rid) -> None:
+        # 1. 드라이버가 기대하는 12개 모터 딕셔너리 리스트 생성
+        # 기본 구조: [{'q': 0.0, 'dq': 0.0, 'tau': 0.0} for _ in range(12)]
+        motor_state = [{} for _ in range(12)]
+        
+        # 2. Isaac Sim 인덱스를 드라이버 순서에 맞춰 재배치 (위에 정의한 매핑 테이블 기준)
+        mapping = {
+            0: 1, 1: 5, 2: 9,   # FR
+            3: 0, 4: 4, 5: 8,   # FL
+            6: 3, 7: 7, 8: 11,  # RR
+            9: 2, 10: 6, 11: 10 # RL
+        }
+        
+        for internal_idx, sim_idx in mapping.items():
+            motor_state[internal_idx] = {
+                "q": float(msg.position[sim_idx]),
+                "dq": float(msg.velocity[sim_idx]),
+                "tau": float(msg.effort[sim_idx])
+            }
+        
+        # 3. RobotData 객체 생성 및 발행
+        robot_data = RobotData(robot_id= rid, timestamp=self.get_clock().now().to_msg())
+        robot_data.joint_data = JointData(motor_state=motor_state)
+        
+        # 4. Publisher를 통해 다른 노드(Nav2 등)가 사용할 수 있도록 최종 발행 [1]
+        self.ros2_publisher.publish_joint_state(robot_data)
 
-    def _on_cyclonedds_pose(self, msg: PoseStamped) -> None:
-        """Processing pose for CycloneDDS"""
-        # You can add processing for CycloneDDS here if needed
-        pass
+    def _on_cyclonedds_pose(self, msg: Odometry, rid) -> None:
+        """수신된 PoseStamped를 Odometry 데이터로 발행"""
+        robot_data = RobotData(robot_id = rid, timestamp=self.get_clock().now().to_msg())
+        
+        # PoseStamped의 위치와 자세 정보를 OdometryData 형식으로 매핑 [8, 9]
+        robot_data.odometry_data = OdometryData(
+            position={
+                "x": msg.pose.pose.position.x,
+                "y": msg.pose.pose.position.y,
+                "z": msg.pose.pose.position.z
+            },
+            orientation={
+                "x": msg.pose.pose.orientation.x,
+                "y": msg.pose.pose.orientation.y,
+                "z": msg.pose.pose.orientation.z,
+                "w": msg.pose.pose.orientation.w
+            }
+        )
+        self.ros2_publisher.publish_odometry(robot_data)
 
-    def _on_cyclonedds_lidar(self, msg: PointCloud2) -> None:
-        """Processing lidar for CycloneDDS"""
-        # You can add processing for CycloneDDS here if needed
-        pass
+    def _on_cyclonedds_lidar_3d(self, msg: PointCloud2,rid) -> None:
+        """PointCloud2 메시지를 Nav2가 사용하는 토픽으로 전달"""
+        if self.publishers_dict["lidar"]:
+            # 1. frame_id를 WebRTC 표준인 'odom'으로 변경 (중요) [4]
+            msg.header.frame_id = "base_link"
+            msg.header.stamp = self.get_clock().now().to_msg()
+            
+            # 3. 정수 인덱스로 변환하여 해당 로봇 퍼블리셔로 발행 [1]
+            self.publishers_dict["lidar"][int(rid)].publish(msg)
+
+    def _on_cyclonedds_lidar_2d(self, msg: LaserScan,rid) -> None:
+        """PointCloud2 메시지를 Nav2가 사용하는 토픽으로 전달"""
+        if self.publishers_dict["scan"]:
+            # 1. frame_id를 WebRTC 표준인 'odom'으로 변경 (중요) [4]
+            msg.header.frame_id = "base_link"
+            msg.header.stamp = self.get_clock().now().to_msg()
+            
+            # 3. 정수 인덱스로 변환하여 해당 로봇 퍼블리셔로 발행 [1]
+            self.publishers_dict["scan"][int(rid)].publish(msg)
 
     async def connect_robots(self) -> None:
         """Connect to robots"""

@@ -1,6 +1,6 @@
 amcl:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
     set_initial_pose: true
     initial_pose_x: -0.325
     initial_pose_y: -0.377
@@ -54,11 +54,11 @@ amcl:
     z_max: 0.05
     z_rand: 0.1
     z_short: 0.05
-    scan_topic: scan
+    scan_topic: /robot2/scan
 
 bt_navigator:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
     global_frame: odom
     robot_base_frame: base_link
     odom_topic: odom
@@ -114,15 +114,15 @@ bt_navigator:
 
 bt_navigator_navigate_through_poses_rclcpp_node:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
 
 bt_navigator_navigate_to_pose_rclcpp_node:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
 
 controller_server:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
 
     # [수정] 제어 주기 (3.0 -> 10.0 Hz)
     # 원본: 3.0 (너무 느려서 장애물 반응 늦음)
@@ -224,7 +224,7 @@ local_costmap:
       publish_frequency: 2.0
       global_frame: odom
       robot_base_frame: base_link
-      use_sim_time: False
+      use_sim_time: True
       rolling_window: true
       # [변경] 원본 5x5 -> 8x8
       # 이유: 로컬 costmap 창이 너무 작으면 장애물을 "가까워서야" 반영하게 되어 회피 시작이 늦어짐(회피 여유 거리 확보)
@@ -250,7 +250,7 @@ local_costmap:
         enabled: True
         observation_sources: scan
         scan:
-          topic: /scan
+          topic: /robot2/scan
           max_obstacle_height: 2.0
           min_obstacle_height: 0.2
           clearing: True
@@ -281,7 +281,7 @@ global_costmap:
       publish_frequency: 1.0
       global_frame: map
       robot_base_frame: base_link
-      use_sim_time: False
+      use_sim_time: True
       resolution: 0.05
 
       # [수정] Unknown Space 추적 (False -> True)
@@ -303,7 +303,7 @@ global_costmap:
 
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
-        map_topic: /map
+        map_topic: /robot2/map
         map_subscribe_transient_local: True
 
       # [추가된 블록] 동적 장애물 반영을 위해 추가
@@ -312,7 +312,7 @@ global_costmap:
         enabled: True
         observation_sources: scan
         scan:
-          topic: /scan
+          topic: /robot2/scan
           max_obstacle_height: 2.0
           clearing: True
           marking: True
@@ -342,14 +342,14 @@ global_costmap:
 
 map_server:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
     # Overridden in launch by the "map" launch configuration or provided default value.
     # To use in yaml, remove the default "map" value in the tb3_simulation_launch.py file & provide full path to map below.
     yaml_filename: ""
 
 map_saver:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
     save_map_timeout: 5.0
     free_thresh_default: 0.25
     occupied_thresh_default: 0.65
@@ -359,7 +359,7 @@ planner_server:
   ros__parameters:
     # [수정] 플러그인 변경 (GridBased -> NavFnPlanner)
     planner_plugins: ["GridBased"]
-    use_sim_time: False # 원본 True -> False 수정
+    use_sim_time: True # 원본 True -> False 수정
 
     # [교체된 블록] NavFnPlanner (가볍고 일반적인 주행용)
     GridBased:
@@ -378,14 +378,14 @@ planner_server:
     #   ... (나머지 Smac 파라미터들 생략 없이 주석 처리 했다고 가정) ...
 behavior_server:
   ros__parameters:
-    costmap_topic: local_costmap/costmap_raw
+    costmap_topic: /robot2/local_costmap/costmap_raw
     footprint_topic: local_costmap/published_footprint
     cycle_frequency: 10.0
     behavior_plugins: ["spin", "backup", "drive_on_heading", "assisted_teleop", "wait"]
 
     # [수정] True -> False
     # 중요: 원본에 True로 되어 있었음. 실제 로봇 주행 시 반드시 False여야 TF 에러 없이 복구 동작 수행 가능.
-    use_sim_time: False
+    use_sim_time: True
 
     spin:
       plugin: "nav2_behaviors/Spin"
@@ -408,11 +408,11 @@ behavior_server:
 
 robot_state_publisher:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
 
 waypoint_follower:
   ros__parameters:
-    use_sim_time: False
+    use_sim_time: True
     loop_rate: 20
     stop_on_failure: false
     waypoint_task_executor_plugin: "wait_at_waypoint"
