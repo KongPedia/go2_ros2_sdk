@@ -345,10 +345,10 @@ class Go2DriverNode(Node):
                     PointCloud2, f"{prefix}point_cloud2", 
                     lambda msg, rid=robot_id: self._on_cyclonedds_lidar_3d(msg, rid), best_effort_qos
                 )
-                # self.create_subscription(
-                #     LaserScan, f"{prefix}scan", 
-                #     lambda msg, rid=robot_id: self._on_cyclonedds_lidar_2d(msg, rid), best_effort_qos
-                # )
+                self.create_subscription(
+                    LaserScan, f"{prefix}scan", 
+                    lambda msg, rid=robot_id: self._on_cyclonedds_lidar_2d(msg, rid), best_effort_qos
+                )
 
     def _on_set_parameters(self, params) -> SetParametersResult:
         """Callback for parameter changes"""

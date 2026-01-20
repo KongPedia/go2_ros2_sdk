@@ -89,6 +89,7 @@ class Go2NodeFactory:
     def create_launch_arguments(self) -> List[DeclareLaunchArgument]:
         """Create all launch arguments"""
         return [
+            DeclareLaunchArgument('use_sim_time', default_value='true', description='Use simulation clock if true'),
             DeclareLaunchArgument('rviz2', default_value='true', description='Launch RViz2'),
             DeclareLaunchArgument('nav2', default_value='true', description='Launch Nav2'),
             DeclareLaunchArgument('map', default_value='', description='Full path to map file to load (for localization)'),
@@ -108,7 +109,6 @@ class Go2NodeFactory:
     def create_robot_state_nodes(self) -> List[Node]:
         """Create robot state publisher nodes"""
         nodes = []
-        use_sim_time = LaunchConfiguration('use_sim_time', default='false')
         log_level = LaunchConfiguration('log_level')
         
         if self.config.conn_mode == 'single':
@@ -122,7 +122,7 @@ class Go2NodeFactory:
                     name='go2_robot_state_publisher',
                     output='screen',
                     parameters=[{
-                        'use_sim_time': use_sim_time,
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
                         'robot_description': robot_desc
                     }],
                     arguments=[
@@ -138,7 +138,7 @@ class Go2NodeFactory:
             # Multi-robot configuration
             urdf_path = self.config.config_paths[0]['urdf']
             base_urdf = self._load_urdf_content(self.config.config_paths[0]['urdf'])
-            
+            use_sim_time = LaunchConfiguration('use_sim_time')
             for i, _ in enumerate(self.config.robot_ip_list):
                 robot_desc = base_urdf
                 
@@ -164,7 +164,7 @@ class Go2NodeFactory:
                             log_level,
                         ]
                     ),
-                    self._create_pointcloud_to_laserscan_node(f"robot{i}")
+                    # self._create_pointcloud_to_laserscan_node(f"robot{i}")
                 ])
         
         return nodes
@@ -177,7 +177,7 @@ class Go2NodeFactory:
     def _create_pointcloud_to_laserscan_node(self, namespace: str = None, namespace_temp: str = None) -> Node:
         """Create pointcloud to laserscan conversion node"""
         log_level = LaunchConfiguration('log_level')
-        use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+        use_sim_time = LaunchConfiguration('use_sim_time')
         if namespace:
             # Multi-robot setup
             return Node(
@@ -229,7 +229,7 @@ class Go2NodeFactory:
             LaunchConfiguration('lidar_intensity_threshold'), value_type=float
         )
         obstacle_avoidance = ParameterValue(LaunchConfiguration('obstacle_avoidance'), value_type=bool)
-        use_sim_time = LaunchConfiguration('use_sim_time', default='true')
+        use_sim_time = LaunchConfiguration('use_sim_time')
 
         return [
             # Main robot driver (clean architecture)
@@ -253,48 +253,6 @@ class Go2NodeFactory:
                     'lidar_intensity_threshold': lidar_intensity_threshold,
                 }],
             ),
-            # # LiDAR processing node (new separate package)
-            # Node(
-            #     package='lidar_processor',
-            #     executable='lidar_to_pointcloud',
-            #     name='lidar_to_pointcloud',
-            #     arguments=['--ros-args', '--log-level', log_level],
-            #     parameters=[{
-            #         'robot_ip_lst': self.config.robot_ip_list,
-            #         'map_name': self.config.map_name,
-            #         'map_save': self.config.save_map
-            #     }],
-            # ),
-            # # Advanced point cloud aggregator
-            # Node(
-            #     package='lidar_processor',
-            #     executable='pointcloud_aggregator',
-            #     name='pointcloud_aggregator',
-            #     arguments=['--ros-args', '--log-level', log_level],
-            #     parameters=[{
-            #         'max_range': 20.0,
-            #         'min_range': 0.1,
-            #         'height_filter_min': -2.0,
-            #         'height_filter_max': 3.0,
-            #         'downsample_rate': 5,
-            #         'publish_rate': 10.0
-            #     }],
-            # ),
-            # # TTS Node (new separate package)
-            # Node(
-            #     package='speech_processor',
-            #     executable='tts_node',
-            #     name='tts_node',
-            #     arguments=['--ros-args', '--log-level', log_level],
-            #     parameters=[{
-            #         'api_key': os.getenv('ELEVENLABS_API_KEY', ''),
-            #         'provider': 'elevenlabs',
-            #         'voice_name': 'XrExE9yKIg1WjnnlVkGX',
-            #         'local_playback': False,
-            #         'use_cache': True,
-            #         'audio_quality': 'standard'
-            #     }],
-            # ),
         ]
     
     def create_teleop_nodes(self) -> List[Node]:
@@ -371,9 +329,6 @@ class Go2NodeFactory:
                         output='screen',
                         condition=IfCondition(with_teleop),
                         arguments=['--ros-args', '--log-level', log_level],
-                        remappings=[
-                            ('cmd_vel_out', 'cmd_vel') 
-                        ],
                         parameters=[
                             {'use_sim_time': use_sim_time},
                             config['twist_mux'] # [수정] config['key'] 사용
@@ -495,70 +450,69 @@ class Go2NodeFactory:
                     }.items(),
                 ),
             ])
-
         else:
             for i in range(len(self.config.robot_ip_list)):
-                            robot_name = f'robot{i}'
-                            config = self.config.config_paths[i]
+                robot_name = f'robot{i}'
+                config = self.config.config_paths[i]
 
-                            # GroupAction으로 묶습니다. 이것이 핵심입니다!
-                            robot_group = GroupAction([
-                                # 이 그룹 안의 모든 노드는 자동으로 robot_name 네임스페이스 아래로 들어갑니다.
-                                PushRosNamespace(robot_name), 
+                # GroupAction으로 묶습니다. 이것이 핵심입니다!
+                robot_group = GroupAction([
+                    # 이 그룹 안의 모든 노드는 자동으로 robot_name 네임스페이스 아래로 들어갑니다.
+                    PushRosNamespace(robot_name), 
 
-                                # SLAM Toolbox
-                                IncludeLaunchDescription(
-                                    PythonLaunchDescriptionSource([
-                                        os.path.join(get_package_share_directory('slam_toolbox'),
-                                                    'launch', 'online_async_launch.py')
-                                    ]),
-                                    condition=UnlessCondition(has_map),
-                                    launch_arguments={
-                                        # PushRosNamespace가 있으므로 여기서 namespace를 또 안 줘도 될 수 있지만
-                                        # 확실히 하기 위해 명시합니다.
-                                        'slam_params_file': config['slam'],
-                                        'use_sim_time': use_sim_time,
-                                    }.items(),
-                                ),
+                    # SLAM Toolbox
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource([
+                            os.path.join(get_package_share_directory('slam_toolbox'),
+                                        'launch', 'online_async_launch.py')
+                        ]),
+                        condition=UnlessCondition(has_map),
+                        launch_arguments={
+                            # PushRosNamespace가 있으므로 여기서 namespace를 또 안 줘도 될 수 있지만
+                            # 확실히 하기 위해 명시합니다.
+                            'slam_params_file': config['slam'],
+                            'use_sim_time': use_sim_time,
+                        }.items(),
+                    ),
 
-                                # Nav2 (Localization)
-                                IncludeLaunchDescription(
-                                    PythonLaunchDescriptionSource([
-                                        os.path.join(get_package_share_directory('nav2_bringup'),
-                                                    'launch', 'localization_launch.py')
-                                    ]),
-                                    condition=IfCondition(has_map),
-                                    launch_arguments={
-                                        'namespace': robot_name,
-                                        'use_namespace': 'True',
-                                        'map': map_file,
-                                        'use_sim_time': use_sim_time,
-                                        'params_file': config['nav2'],
-                                        # TF 리맵핑 (혹시 모를 충돌 방지)
-                                        'use_composition': 'False', 
-                                        'autostart': 'True',
-                                    }.items(),
-                                ),
+                    # Nav2 (Localization)
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource([
+                            os.path.join(get_package_share_directory('nav2_bringup'),
+                                        'launch', 'localization_launch.py')
+                        ]),
+                        condition=IfCondition(has_map),
+                        launch_arguments={
+                            'namespace': robot_name,
+                            'use_namespace': 'True',
+                            'map': map_file,
+                            'use_sim_time': use_sim_time,
+                            'params_file': config['nav2'],
+                            # TF 리맵핑 (혹시 모를 충돌 방지)
+                            'use_composition': 'False', 
+                            'autostart': 'True',
+                        }.items(),
+                    ),
 
-                                # Nav2 (Navigation)
-                                IncludeLaunchDescription(
-                                    PythonLaunchDescriptionSource([
-                                        os.path.join(get_package_share_directory('nav2_bringup'),
-                                                    'launch', 'navigation_launch.py')
-                                    ]),
-                                    condition=IfCondition(with_nav2),
-                                    launch_arguments={
-                                        'namespace': robot_name,
-                                        'use_namespace': 'True',
-                                        'params_file': config['nav2'],
-                                        'use_sim_time': use_sim_time,
-                                        'map_subscribe_transient_local': 'true',
-                                        'autostart': 'True',
-                                    }.items(),
-                                ),
-                            ])
-                            
-                            launch_entities.append(robot_group)
+                    # Nav2 (Navigation)
+                    IncludeLaunchDescription(
+                        PythonLaunchDescriptionSource([
+                            os.path.join(get_package_share_directory('nav2_bringup'),
+                                        'launch', 'navigation_launch.py')
+                        ]),
+                        condition=IfCondition(with_nav2),
+                        launch_arguments={
+                            'namespace': robot_name,
+                            'use_namespace': 'True',
+                            'params_file': config['nav2'],
+                            'use_sim_time': use_sim_time,
+                            'map_subscribe_transient_local': 'true',
+                            'autostart': 'True',
+                        }.items(),
+                    ),
+                ])
+                
+                launch_entities.append(robot_group)
                     
         return launch_entities
 

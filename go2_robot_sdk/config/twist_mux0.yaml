@@ -1,4 +1,4 @@
-/go2_teleop_node:
+/**:
   ros__parameters:
     axis_linear:
       x: 1
@@ -15,7 +15,7 @@
     require_enable_button: false
 
 
-/twist_mux:
+/**:
   ros__parameters:
     topics:
       joy:
@@ -27,6 +27,6 @@
         timeout : 0.5
         priority: 20
       navigation:
-        topic   : cmd_vel
+        topic   : /robot0/cmd_vel
         timeout : 0.5
         priority: 5
