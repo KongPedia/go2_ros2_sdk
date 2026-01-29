@@ -59,6 +59,7 @@ amcl:
 bt_navigator:
   ros__parameters:
     use_sim_time: True
+    default_nav_through_poses_bt_xml: "/home/loe/workspace/github/battlebang/src/third_party/go2_ros2_sdk/go2_robot_sdk/config/nav2_params_docs/navigate_through_poses_w_replanning_and_recovery.xml"
     global_frame: odom
     robot_base_frame: base_link
     odom_topic: /robot1/odom
@@ -155,12 +156,13 @@ controller_server:
       plugin: "nav2_controller::SimpleProgressChecker"
       required_movement_radius: 0.1
       movement_time_allowance: 10.0
+    publish_zero_velocity: False
 
     general_goal_checker:
-      stateful: True
+      stateful: False
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.5
+      yaw_goal_tolerance: 3.14
 
     # DWB parameters
     FollowPath:
@@ -339,6 +341,7 @@ global_costmap:
           # 이유: 맵에 없는 동적 장애물을 더 멀리서 반영하여 경로 자체가 장애물을 크게 우회하도록 유도
           obstacle_max_range: 7.0
           obstacle_min_range: 0.0
+
 
       # [주석 처리된 원본] Voxel Layer
       # 3D 센서를 쓴다면 이걸 써야 하지만, 2D Scan만 쓴다면 Obstacle Layer가 훨씬 가볍고 효율적임.

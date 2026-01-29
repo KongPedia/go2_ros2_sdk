@@ -141,12 +141,13 @@ controller_server:
       plugin: "nav2_controller::SimpleProgressChecker"
       required_movement_radius: 0.1
       movement_time_allowance: 10.0
+    publish_zero_velocity: False
 
     general_goal_checker:
-      stateful: True
-      plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
+      stateful: False
+      plugin: "nav2_controller::SimpleGoalChecker"  
+      xy_goal_tolerance: 0.5
+      yaw_goal_tolerance: 0.5
 
     # DWB parameters
     FollowPath:
