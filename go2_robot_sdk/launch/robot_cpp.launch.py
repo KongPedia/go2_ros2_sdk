@@ -443,7 +443,7 @@ class Go2NodeFactory:
                     'slam_params_file': self.config.config_paths['slam'],
                     'use_sim_time': use_sim_time,
                 }.items(),
-            ),
+            ), 
             # Nav2 (Localization Mode - Run if map IS provided)
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource([
