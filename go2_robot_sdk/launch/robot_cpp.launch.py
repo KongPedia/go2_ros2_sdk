@@ -68,6 +68,11 @@ class Go2LaunchConfig:
             'nav2': os.path.join(self.package_dir, 'config', 'nav2_params.yaml'),
             'rviz': os.path.join(self.package_dir, 'config', self.rviz_config),
             'urdf': os.path.join(self.package_dir, 'urdf', self.urdf_file),
+            'bt_xml': os.path.join(
+                self.package_dir,
+                'config',
+                'navigate_through_poses_w_replanning_and_recovery.xml',
+            ),
         }
 
 
@@ -463,6 +468,7 @@ class Go2NodeFactory:
                     'params_file': self.config.config_paths['nav2'],
                     'use_sim_time': use_sim_time,
                     'map_subscribe_transient_local': 'true',
+                    'default_nav_through_poses_bt_xml': self.config.config_paths['bt_xml'],
                 }.items(),
             ),
         ]
