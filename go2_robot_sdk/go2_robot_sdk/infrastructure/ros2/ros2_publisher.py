@@ -77,8 +77,6 @@ class ROS2Publisher(IRobotDataPublisher):
         odom_trans = TransformStamped()
         odom_trans.header.stamp = robot_data.timestamp
         odom_trans.header.frame_id = "odom"
-
-
         odom_trans.child_frame_id = "base_link"
 
 

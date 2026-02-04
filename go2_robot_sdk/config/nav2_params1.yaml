@@ -59,7 +59,6 @@ amcl:
 bt_navigator:
   ros__parameters:
     use_sim_time: True
-    default_nav_through_poses_bt_xml: "/home/loe/workspace/github/battlebang/src/third_party/go2_ros2_sdk/go2_robot_sdk/config/nav2_params_docs/navigate_through_poses_w_replanning_and_recovery.xml"
     global_frame: odom
     robot_base_frame: base_link
     odom_topic: /robot1/odom

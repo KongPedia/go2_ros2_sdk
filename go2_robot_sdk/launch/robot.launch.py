@@ -11,6 +11,7 @@ from launch_ros.actions import Node, PushRosNamespace
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument,GroupAction
 from launch.launch_description_sources import FrontendLaunchDescriptionSource, PythonLaunchDescriptionSource
+from nav2_common.launch import RewrittenYaml
 
 
 class Go2LaunchConfig:
@@ -73,6 +74,11 @@ class Go2LaunchConfig:
                 'nav2': os.path.join(self.package_dir, 'config', f'nav2_params{i}.yaml'),
                 'rviz': os.path.join(self.package_dir, 'config', self.rviz_config),
                 'urdf': os.path.join(self.package_dir, 'urdf', self.urdf_file),
+                'bt_xml': os.path.join(
+                    self.package_dir,
+                    'config',
+                    'navigate_through_poses_w_replanning_and_recovery.xml',
+                ),
             }
             all_robot_configs.append(config)
         
@@ -230,7 +236,7 @@ class Go2NodeFactory:
         )
         obstacle_avoidance = ParameterValue(LaunchConfiguration('obstacle_avoidance'), value_type=bool)
         use_sim_time = LaunchConfiguration('use_sim_time')
-
+        
         return [
             # Main robot driver (clean architecture)
             Node(
@@ -408,6 +414,15 @@ class Go2NodeFactory:
         if self.config.conn_mode == 'single':
             config = self.config.config_paths # 딕셔너리
 
+            rewritten_nav2_params = RewrittenYaml(
+                source_file=config['nav2'],
+                root_key=None,
+                param_rewrites={
+                    'bt_navigator.ros__parameters.default_nav_through_poses_bt_xml': config['bt_xml'],
+                },
+                convert_types=True,
+            )
+
             launch_entities.extend([
                 # SLAM Toolbox
                 IncludeLaunchDescription(
@@ -431,7 +446,7 @@ class Go2NodeFactory:
                     launch_arguments={
                         'map': map_file,
                         'use_sim_time': use_sim_time,
-                        'params_file': config['nav2'],
+                        'params_file': rewritten_nav2_params,
                         'autostart': 'True',
                     }.items(),
                 ),
@@ -443,7 +458,7 @@ class Go2NodeFactory:
                     ]),
                     condition=IfCondition(with_nav2),
                     launch_arguments={
-                        'params_file': config['nav2'],
+                        'params_file': rewritten_nav2_params,
                         'use_sim_time': use_sim_time,
                         'map_subscribe_transient_local': 'true',
                         'autostart': 'True',
@@ -454,6 +469,15 @@ class Go2NodeFactory:
             for i in range(len(self.config.robot_ip_list)):
                 robot_name = f'robot{i}'
                 config = self.config.config_paths[i]
+
+                rewritten_nav2_params = RewrittenYaml(
+                    source_file=config['nav2'],
+                    root_key=None,
+                    param_rewrites={
+                        'bt_navigator.ros__parameters.default_nav_through_poses_bt_xml': config['bt_xml'],
+                    },
+                    convert_types=True,
+                )
 
                 # GroupAction으로 묶습니다. 이것이 핵심입니다!
                 robot_group = GroupAction([
@@ -487,8 +511,7 @@ class Go2NodeFactory:
                             'use_namespace': 'True',
                             'map': map_file,
                             'use_sim_time': use_sim_time,
-                            'params_file': config['nav2'],
-                            # TF 리맵핑 (혹시 모를 충돌 방지)
+                            'params_file': rewritten_nav2_params,
                             'use_composition': 'False', 
                             'autostart': 'True',
                         }.items(),
@@ -504,7 +527,7 @@ class Go2NodeFactory:
                         launch_arguments={
                             'namespace': robot_name,
                             'use_namespace': 'True',
-                            'params_file': config['nav2'],
+                            'params_file': rewritten_nav2_params,
                             'use_sim_time': use_sim_time,
                             'map_subscribe_transient_local': 'true',
                             'autostart': 'True',
