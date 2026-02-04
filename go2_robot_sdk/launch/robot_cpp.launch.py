@@ -10,6 +10,7 @@ from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch.actions import IncludeLaunchDescription, DeclareLaunchArgument
 from launch.launch_description_sources import FrontendLaunchDescriptionSource, PythonLaunchDescriptionSource
+from nav2_common.launch import RewrittenYaml
 
 
 class Go2LaunchConfig:
@@ -422,6 +423,15 @@ class Go2NodeFactory:
             get_package_share_directory('foxglove_bridge'),
             'launch', 'foxglove_bridge_launch.xml'
         )
+
+        rewritten_nav2_params = RewrittenYaml(
+            source_file=self.config.config_paths['nav2'],
+            root_key=None,
+            param_rewrites={
+                'bt_navigator.ros__parameters.default_nav_through_poses_bt_xml': self.config.config_paths['bt_xml'],
+            },
+            convert_types=True,
+        )
         
         return [
             # Foxglove Bridge
@@ -454,7 +464,7 @@ class Go2NodeFactory:
                 launch_arguments={
                     'map': map_file,
                     'use_sim_time': use_sim_time,
-                    'params_file': self.config.config_paths['nav2'],
+                    'params_file': rewritten_nav2_params,
                 }.items(),
             ),
             # Nav2 (Navigation Mode - Always run)
@@ -465,10 +475,9 @@ class Go2NodeFactory:
                 ]),
                 condition=IfCondition(with_nav2),
                 launch_arguments={
-                    'params_file': self.config.config_paths['nav2'],
+                    'params_file': rewritten_nav2_params,
                     'use_sim_time': use_sim_time,
                     'map_subscribe_transient_local': 'true',
-                    'default_nav_through_poses_bt_xml': self.config.config_paths['bt_xml'],
                 }.items(),
             ),
         ]
