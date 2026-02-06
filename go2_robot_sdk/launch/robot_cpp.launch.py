@@ -353,22 +353,14 @@ class Go2NodeFactory:
         log_level = LaunchConfiguration('log_level')
         
         return [
-            # Joystick node
+            # teleop node
             Node(
-                package='joy',
-                executable='joy_node',
+                package='go2_robot_sdk',
+                executable='go2_keyboard_teleop',
+                name='go2_keyboard_teleop',
+                output='screen',
                 condition=IfCondition(with_joystick),
-                arguments=['--ros-args', '--log-level', log_level],
-                parameters=[self.config.config_paths['joystick']]
-            ),
-            # Teleop twist joy node
-            Node(
-                package='teleop_twist_joy',
-                executable='teleop_node',
-                name='go2_teleop_node',
-                condition=IfCondition(with_joystick),
-                arguments=['--ros-args', '--log-level', log_level],
-                parameters=[self.config.config_paths['twist_mux']],
+                parameters=[{'use_sim_time': use_sim_time}],
             ),
             # Twist multiplexer
             Node(
