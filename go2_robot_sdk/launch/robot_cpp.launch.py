@@ -359,7 +359,7 @@ class Go2NodeFactory:
                 output='screen',
                 condition=IfCondition(with_teleop),
                 arguments=['--ros-args', '--log-level', log_level],
-                parameters=[
+                parameters=[ 
                     {'use_sim_time': use_sim_time},
                     self.config.config_paths['twist_mux']
                 ],
