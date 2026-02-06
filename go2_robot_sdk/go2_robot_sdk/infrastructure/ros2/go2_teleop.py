@@ -45,18 +45,24 @@ class Go2KeyboardTeleop(Node):
         
         Space : 🛑 정지 (Stop)
         CTRL-C: 종료
+    
+        현재 속도 설정:
+        Linear : {LINEAR_SPEED} m/s
+        Angular: {ANGULAR_SPEED} rad/s
         =============================================
         """)
 
     def get_key(self):
         """Non-blocking 키 입력 감지"""
         tty.setraw(sys.stdin.fileno())
-        rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
-        if rlist:
-            key = sys.stdin.read(1)
-        else:
-            key = ''
-        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
+        try:
+            rlist, _, _ = select.select([sys.stdin], [], [], 0.1)
+            if rlist:
+                key = sys.stdin.read(1)
+            else:
+                key = ''
+        finally:
+            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, self.settings)
         return key
 
     def run_loop(self):

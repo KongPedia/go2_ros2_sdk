@@ -348,10 +348,28 @@ class Go2NodeFactory:
     def create_teleop_nodes(self) -> List[Node]:
         """Create teleoperation and joystick nodes"""
         use_sim_time = LaunchConfiguration('use_sim_time', default='false')
+        with_joystick = LaunchConfiguration('joystick', default='true')
         with_teleop = LaunchConfiguration('teleop', default='true')
         log_level = LaunchConfiguration('log_level')
         
         return [
+            # Joystick node
+            Node(
+                package='joy',
+                executable='joy_node',
+                condition=IfCondition(with_joystick),
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[self.config.config_paths['joystick']]
+            ),
+            # Teleop twist joy node
+            Node(
+                package='teleop_twist_joy',
+                executable='teleop_node',
+                name='go2_teleop_node',
+                condition=IfCondition(with_joystick),
+                arguments=['--ros-args', '--log-level', log_level],
+                parameters=[self.config.config_paths['twist_mux']],
+            ),
             # Twist multiplexer
             Node(
                 package='twist_mux',
