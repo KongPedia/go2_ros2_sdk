@@ -89,8 +89,9 @@ class Go2KeyboardTeleop(Node):
                 twist.angular.z = -ANGULAR_SPEED
                 publish = True
             elif key == ' ':
-                # 정지
-                twist = Twist()
+                twist.linear.x = 0.0
+                twist.linear.y = 0.0
+                twist.angular.z = 0.0
                 publish = True
             elif key == '\x03': # CTRL-C
                 rclpy.shutdown()
@@ -99,13 +100,6 @@ class Go2KeyboardTeleop(Node):
             if publish:
                 self.target_twist = twist
                 self.pub.publish(twist)
-            else:
-                # 키 입력이 없을 때 0.0을 보낼지, 마지막 명령을 유지할지 결정
-                # TwistMux timeout(0.5s)을 고려하여 멈추고 싶으면 0을 보내야 함
-                # 여기서는 키 입력이 끊기면 0을 보내도록 처리
-                if key == '':
-                    stop_twist = Twist()
-                    self.pub.publish(stop_twist)
 
         except Exception as e:
             self.get_logger().error(f'Error: {e}')
