@@ -348,20 +348,10 @@ class Go2NodeFactory:
     def create_teleop_nodes(self) -> List[Node]:
         """Create teleoperation and joystick nodes"""
         use_sim_time = LaunchConfiguration('use_sim_time', default='false')
-        with_joystick = LaunchConfiguration('joystick', default='true')
         with_teleop = LaunchConfiguration('teleop', default='true')
         log_level = LaunchConfiguration('log_level')
         
         return [
-            # teleop node
-            Node(
-                package='go2_robot_sdk',
-                executable='go2_keyboard_teleop',
-                name='go2_keyboard_teleop',
-                output='screen',
-                condition=IfCondition(with_joystick),
-                parameters=[{'use_sim_time': use_sim_time}],
-            ),
             # Twist multiplexer
             Node(
                 package='twist_mux',
