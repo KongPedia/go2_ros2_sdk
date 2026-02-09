@@ -41,6 +41,7 @@ setup(
     entry_points={
         'console_scripts': [
             'go2_driver_node = go2_robot_sdk.main:main',
+            'go2_keyboard_teleop = go2_robot_sdk.infrastructure.ros2.go2_teleop:main',
         ],
     },
 )
