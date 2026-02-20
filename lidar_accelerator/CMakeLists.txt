@@ -45,6 +45,7 @@ target_link_libraries(lidar_accelerator PRIVATE ament_index_cpp::ament_index_cpp
 pybind11_add_module(lidar_accelerator_v2
   src/pybind_module_v2.cpp
   src/processing_v2.cpp
+  src/wasm_decode_v2.cpp
 )
 target_include_directories(lidar_accelerator_v2 PRIVATE ${Python3_INCLUDE_DIRS})
 target_link_libraries(lidar_accelerator_v2 PRIVATE Python3::Python)
@@ -63,6 +64,10 @@ if(WASMTIME_INCLUDE_DIR AND WASMTIME_LIBRARY)
   target_include_directories(lidar_accelerator SYSTEM PRIVATE ${WASMTIME_INCLUDE_DIR})
   target_link_libraries(lidar_accelerator PRIVATE ${WASMTIME_LIBRARY})
   target_compile_definitions(lidar_accelerator PRIVATE GO2_WASMTIME_C_API=1)
+  target_include_directories(lidar_accelerator_v2 SYSTEM PRIVATE ${WASMTIME_INCLUDE_DIR})
+  target_link_libraries(lidar_accelerator_v2 PRIVATE ${WASMTIME_LIBRARY})
+  target_link_libraries(lidar_accelerator_v2 PRIVATE ament_index_cpp::ament_index_cpp)
+  target_compile_definitions(lidar_accelerator_v2 PRIVATE GO2_WASMTIME_C_API=1)
 else()
   message(WARNING "Wasmtime C API not found; decode_and_process will not be available")
 endif()

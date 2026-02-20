@@ -3,6 +3,7 @@
 // so benchmarks can call both without code changes.
 
 #include "lidar_accelerator/processing_v2.hpp"
+#include "lidar_accelerator/wasm_decode_v2.hpp"
 
 #include <cstddef>
 #include <cstring>
@@ -19,6 +20,59 @@ namespace py = pybind11;
 PYBIND11_MODULE(lidar_accelerator_v2, m)
 {
   m.doc() = "P3 SIMD-optimised LiDAR processing (two-phase SoA + NEON auto-vectorisation)";
+
+  m.def(
+    "decode_and_process",
+    [](py::bytes compressed,
+      float res,
+      py::sequence origin,
+      float intense_limiter,
+      bool deduplicate,
+      int downsample_step,
+      int max_points) -> py::array_t<float>
+    {
+      std::string c = compressed;
+      if (origin.size() != 3) {
+        throw std::runtime_error("origin must have length 3");
+      }
+      float origin_f[3] = {
+        origin[0].cast<float>(),
+        origin[1].cast<float>(),
+        origin[2].cast<float>(),
+      };
+      std::size_t out_points = 0;
+      std::vector<float> out;
+      {
+        py::gil_scoped_release release;
+        out = lidar_accelerator::decode_and_process_v2(
+          reinterpret_cast<const uint8_t *>(c.data()),
+          static_cast<std::size_t>(c.size()),
+          res,
+          origin_f,
+          intense_limiter,
+          deduplicate,
+          downsample_step,
+          max_points,
+          &out_points);
+      }
+      std::vector<py::ssize_t> shape = {
+        static_cast<py::ssize_t>(out_points),
+        static_cast<py::ssize_t>(4),
+      };
+      py::array_t<float> out_arr(shape);
+      if (out_points > 0) {
+        std::memcpy(out_arr.mutable_data(), out.data(), out.size() * sizeof(float));
+      }
+      return out_arr;
+    },
+    py::arg("compressed"),
+    py::arg("res"),
+    py::arg("origin"),
+    py::arg("intense_limiter"),
+    py::arg("deduplicate") = true,
+    py::arg("downsample_step") = 1,
+    py::arg("max_points") = 0,
+    "WASM decode + V2 SIMD processing (drop-in replacement for lidar_accelerator.decode_and_process).");
 
   m.def(
     "process_u8_to_xyzi_f32_v2",

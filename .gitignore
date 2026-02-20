@@ -45,3 +45,5 @@ coverage.xml
 pytest-report.xml
 htmlcov/
 .pytest_cache/
+
+benchmark_results/

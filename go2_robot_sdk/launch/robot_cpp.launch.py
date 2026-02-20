@@ -304,7 +304,7 @@ class Go2NodeFactory:
             # LiDAR processing node (C++ implementation)
             Node(
                 package='lidar_processor_cpp',
-                executable='lidar_to_pointcloud_node',
+                executable='lidar_to_pointcloud_node_v2',
                 name='lidar_to_pointcloud',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{
@@ -316,7 +316,7 @@ class Go2NodeFactory:
             # Advanced point cloud aggregator (C++ implementation)
             Node(
                 package='lidar_processor_cpp',
-                executable='pointcloud_aggregator_node',
+                executable='pointcloud_aggregator_node_v2',
                 name='pointcloud_aggregator',
                 arguments=['--ros-args', '--log-level', log_level],
                 parameters=[{

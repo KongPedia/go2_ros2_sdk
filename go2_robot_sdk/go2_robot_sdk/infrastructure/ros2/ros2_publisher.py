@@ -282,7 +282,7 @@ class ROS2Publisher(IRobotDataPublisher):
                         use_cpp = bool(getattr(self.config, "use_cpp_lidar_accel", True))
                         if use_cpp and getattr(lidar, "compressed_data", None):
                             try:
-                                import lidar_accelerator
+                                import lidar_accelerator_v2 as lidar_accelerator
 
                                 points = lidar_accelerator.decode_and_process(
                                     lidar.compressed_data,
