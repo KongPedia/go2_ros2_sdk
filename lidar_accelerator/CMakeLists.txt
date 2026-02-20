@@ -41,6 +41,24 @@ target_include_directories(lidar_accelerator PRIVATE ${Python3_INCLUDE_DIRS})
 target_link_libraries(lidar_accelerator PRIVATE Python3::Python)
 target_link_libraries(lidar_accelerator PRIVATE ament_index_cpp::ament_index_cpp)
 
+# V2: P3 SIMD-optimised module (two-phase SoA + NEON auto-vectorisation)
+pybind11_add_module(lidar_accelerator_v2
+  src/pybind_module_v2.cpp
+  src/processing_v2.cpp
+)
+target_include_directories(lidar_accelerator_v2 PRIVATE ${Python3_INCLUDE_DIRS})
+target_link_libraries(lidar_accelerator_v2 PRIVATE Python3::Python)
+# SIMD optimisation flags: -march=native lets the compiler choose NEON on ARM64
+# or AVX2 on x86_64 -- correct for both the dev container and Jetson deployment.
+target_compile_options(lidar_accelerator_v2 PRIVATE
+  -O3
+  -ffast-math
+  -funroll-loops
+  -ftree-vectorize
+  -march=native
+)
+target_compile_definitions(lidar_accelerator_v2 PRIVATE PYBIND11_DETAILED_ERROR_MESSAGES=1)
+
 if(WASMTIME_INCLUDE_DIR AND WASMTIME_LIBRARY)
   target_include_directories(lidar_accelerator SYSTEM PRIVATE ${WASMTIME_INCLUDE_DIR})
   target_link_libraries(lidar_accelerator PRIVATE ${WASMTIME_LIBRARY})
@@ -56,6 +74,10 @@ set(PYTHON_INSTALL_DIR
 )
 
 install(TARGETS lidar_accelerator
+  LIBRARY DESTINATION "${PYTHON_INSTALL_DIR}"
+)
+
+install(TARGETS lidar_accelerator_v2
   LIBRARY DESTINATION "${PYTHON_INSTALL_DIR}"
 )
 

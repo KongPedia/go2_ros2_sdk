@@ -50,14 +50,26 @@ add_executable(lidar_to_pointcloud_node src/lidar_to_pointcloud_node.cpp)
 ament_target_dependencies(lidar_to_pointcloud_node ${dependencies})
 target_link_libraries(lidar_to_pointcloud_node ${PCL_LIBRARIES})
 
+# V2: voxel hash aggregator (P1 optimisation -- kept alongside original for comparison)
+add_executable(lidar_to_pointcloud_node_v2 src/lidar_to_pointcloud_node_v2.cpp)
+ament_target_dependencies(lidar_to_pointcloud_node_v2 ${dependencies})
+target_link_libraries(lidar_to_pointcloud_node_v2 ${PCL_LIBRARIES})
+
 add_executable(pointcloud_aggregator_node src/pointcloud_aggregator_node.cpp)
 ament_target_dependencies(pointcloud_aggregator_node ${dependencies})
 target_link_libraries(pointcloud_aggregator_node ${PCL_LIBRARIES})
 
+# V2: SOR removed, range+height filter only (P2 optimisation)
+add_executable(pointcloud_aggregator_node_v2 src/pointcloud_aggregator_node_v2.cpp)
+ament_target_dependencies(pointcloud_aggregator_node_v2 ${dependencies})
+target_link_libraries(pointcloud_aggregator_node_v2 ${PCL_LIBRARIES})
+
 # Install targets
 install(TARGETS
   lidar_to_pointcloud_node
+  lidar_to_pointcloud_node_v2
   pointcloud_aggregator_node
+  pointcloud_aggregator_node_v2
   DESTINATION lib/${PROJECT_NAME}
 )
 
