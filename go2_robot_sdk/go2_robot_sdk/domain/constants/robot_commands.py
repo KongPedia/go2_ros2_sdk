@@ -60,4 +60,5 @@ ROBOT_CMD = {
     "VuiGetVolume": 1004,
     "VuiSetBrightness": 1005,
     "VuiGetBrightness": 1006,
+    "VuiSetColor": 1007,
 } 

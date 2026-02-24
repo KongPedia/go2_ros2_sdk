@@ -155,25 +155,24 @@ controller_server:
       min_vel_x: 0.0
       min_vel_y: 0.0
 
-      # [수정] 최대 속도 제한 (3.0 -> 0.8)
-      # 원본: 3.0 (좁은 실내에서 위험, 위치 추정 실패 원인)
-      # 수정: 0.8 (안전 속도)
-      max_vel_x: 2.0
-      max_vel_y: 2.0
-      max_vel_theta: 2.0 # 원본 3.0은 회전이 너무 빠름
+      # [수정] 최대 속도 제한 (2.0 -> 0.5)
+      # 원본: 3.0 -> 2.0 -> 0.5 (안전 저속 주행)
+      max_vel_x: 0.5
+      max_vel_y: 0.3
+      max_vel_theta: 1.0
 
       min_speed_xy: 0.0
-      max_speed_xy: 2.8 # max_vel_x와 동일하게
+      max_speed_xy: 0.6 # max_vel_x와 동일하게
       min_speed_theta: 0.0
 
-      # [수정] 가속도 제한 (2.5 -> 1.5)
-      # 너무 급격한 가속은 로봇이 미끄러지거나 위치를 잃게 함
-      acc_lim_x: 1.5
+      # [수정] 가속도 제한 (1.5 -> 0.8)
+      # 저속에 맞게 가속도도 비례 감소
+      acc_lim_x: 0.8
       acc_lim_y: 0.0
-      acc_lim_theta: 2.0
-      decel_lim_x: -1.5
+      acc_lim_theta: 1.0
+      decel_lim_x: -0.8
       decel_lim_y: 0.0
-      decel_lim_theta: -2.0
+      decel_lim_theta: -1.0
 
       vx_samples: 12
       vy_samples: 1
@@ -412,12 +411,12 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [2.0, 0.0, 2.0]
-    min_velocity: [-2.0, 0.0, -2.0]
+    max_velocity: [0.5, 0.0, 1.0]
+    min_velocity: [-0.5, 0.0, -1.0]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-    max_accel: [2.0, 0.0, 2.0]
-    max_decel: [-2.0, 0.0, -2.0]
+    max_accel: [0.8, 0.0, 1.0]
+    max_decel: [-0.8, 0.0, -1.0]
     odom_topic: "odom"
     odom_duration: 0.1
     use_realtime_priority: false
