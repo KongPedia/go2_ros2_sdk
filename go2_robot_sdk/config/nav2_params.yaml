@@ -9,11 +9,11 @@ amcl:
     # [수정] 오도메트리 노이즈 파라미터 (0.2 -> 0.05)
     # 원본: alpha1~4: 0.2 (일반적인 바퀴형 로봇)
     # 수정: 맵이 정사각형이라 라이다 매칭이 부정확하므로, 오도메트리를 더 신뢰하게 값을 낮춤
-    alpha1: 0.01
-    alpha2: 0.01
-    alpha3: 0.01
-    alpha4: 0.01
-    alpha5: 0.01
+    alpha1: 0.2
+    alpha2: 0.2
+    alpha3: 0.2
+    alpha4: 0.2
+    alpha5: 0.2
 
     base_frame_id: "base_link"
     beam_skip_distance: 0.5
@@ -139,8 +139,8 @@ controller_server:
 
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
-      required_movement_radius: 0.1
-      movement_time_allowance: 10.0
+      required_movement_radius: 0.03
+      movement_time_allowance: 5.0
 
     general_goal_checker:
       stateful: True
@@ -209,32 +209,28 @@ controller_server:
       GoalDist:
         # [변경] 원본 24.0 -> 20.0
         # 이유: 목표로의 직진 성향을 약간 낮춰, 장애물 앞에서 더 큰 우회 궤적을 허용
-        scale: 20.0
-      RotateToGoal:
-        scale: 32.0
-        slowing_factor: 5.0
-        lookahead_time: -1.0
 
 local_costmap:
   local_costmap:
     ros__parameters:
       # [수정] 업데이트 빈도 (3.0 -> 5.0 Hz)
       update_frequency: 5.0
-      publish_frequency: 2.0
+      publish_frequency: 5.0
       global_frame: odom
       robot_base_frame: base_link
       use_sim_time: False
       rolling_window: true
       # [변경] 원본 5x5 -> 8x8
       # 이유: 로컬 costmap 창이 너무 작으면 장애물을 "가까워서야" 반영하게 되어 회피 시작이 늦어짐(회피 여유 거리 확보)
-      width: 8 # 원본 6 -> 5 (연산량 최적화)
-      height: 8
+      # 원본 6 -> 5 (연산량 최적화)
+      width: 5 
+      height: 5
       resolution: 0.05
       footprint: "[ [0.360, 0.200], [0.360, -0.200], [-0.450, -0.200], [-0.450, 0.200] ]"
       # [변경] 원본 0.03 -> 0.05
       # 이유: footprint를 조금 더 크게 잡아 벽/장애물 최소 이격을 확보(단, 좁은 문틀 통과가 막히면 0.03~0.05에서 조정)
-      footprint_padding: 0.05
-
+      footprint_padding: 0.0
+  
       # [수정] static_layer 제거
       # 로컬 맵은 센서 데이터(Voxel/Obstacle)만 보는 것이 회색 영역 주행에 유리함
       plugins: ["obstacle_layer", "inflation_layer"]
@@ -247,11 +243,14 @@ local_costmap:
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
+        footprint_clearing_enabled: True
         observation_sources: scan
         scan:
           topic: /scan
           max_obstacle_height: 2.0
-          min_obstacle_height: 0.2
+          min_obstacle_height: 0.0
+          observation_persistence: 0.0
+          inf_is_valid: true
           clearing: True
           marking: True
           data_type: "LaserScan"
@@ -266,18 +265,18 @@ local_costmap:
 
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        # [변경] 원본 cost_scaling_factor 3.0 -> 2.5
-        # 이유: 비용이 너무 급격히 떨어지면 회피가 늦어질 수 있어 완만하게(단, 좁은 공간 통과가 어려우면 2.5~3.0에서 조정)
-        cost_scaling_factor: 2.5
-        # [변경] 원본 inflation_radius 0.45 -> 0.75
-        # 이유: 벽/장애물 주변 안전거리(회피 여유)를 키워 "바짝 붙는" 주행을 줄임(좁은 곳 통과 고려해 0.65~0.85 권장)
-        inflation_radius: 0.75
+        # [변경] cost_scaling_factor 2.5 -> 5.0
+        # 이유: 장애물 주변 비용을 급격히 감소시켜 좁은 통로 통과 가능하게 함
+        cost_scaling_factor: 5.0
+        # [변경] inflation_radius 0.45 -> 0.15
+        # 이유: 장애물 주변 팽창 반경을 최소화하여 벽에 최대한 근접 가능하게 함 (내장 회피 기능 활용)
+        inflation_radius: 0.15
 
 global_costmap:
   global_costmap:
     ros__parameters:
-      update_frequency: 1.0
-      publish_frequency: 1.0
+      update_frequency: 3.0
+      publish_frequency: 3.0
       global_frame: map
       robot_base_frame: base_link
       use_sim_time: False
@@ -292,7 +291,7 @@ global_costmap:
       footprint: "[ [0.380, 0.230], [0.380, -0.230], [-0.480, -0.230], [-0.480, 0.230] ]"
       # [변경] 원본 0.03 -> 0.05
       # 이유: 글로벌 플래너도 로봇 외곽을 조금 더 보수적으로 잡아 벽 근접 경로 생성을 줄임
-      footprint_padding: 0.05
+      footprint_padding: 0.0
 
       # [수정] Obstacle Layer 추가
       # 원본: ["static_layer", "voxel_layer", "inflation_layer"]
@@ -309,10 +308,14 @@ global_costmap:
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
         enabled: True
+        footprint_clearing_enabled: True
         observation_sources: scan
         scan:
           topic: /scan
           max_obstacle_height: 2.0
+          min_obstacle_height: 0.0
+          observation_persistence: 0.0
+          inf_is_valid: true
           clearing: True
           marking: True
           data_type: "LaserScan"
@@ -334,10 +337,12 @@ global_costmap:
 
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 3.0 # 원본 1.0 -> 3.0 (좁은 곳 통과 용이)
-        # [변경] 원본 0.55 -> 0.85
-        # 이유: 글로벌 경로가 벽/장애물에서 더 떨어지도록 안전거리 확장(단, 좁은 통로가 막히면 0.65~0.85에서 조정)
-        inflation_radius: 0.85   # 원본 0.25 -> 0.55 (벽에서 안전거리 확보)
+        # [변경] cost_scaling_factor 3.0 -> 5.0
+        # 이유: 벽 주변 비용을 급격히 감소시켜 좁은 통로 경로 생성 가능하게 함
+        cost_scaling_factor: 5.0
+        # [변경] inflation_radius 0.40 -> 0.15
+        # 이유: 맵 벽 주변 팽창 반경을 최소화하여 좁은 통로로의 경로 생성 가능하게 함
+        inflation_radius: 0.15
 
 map_server:
   ros__parameters:
@@ -363,7 +368,7 @@ planner_server:
     # [교체된 블록] NavFnPlanner (가볍고 일반적인 주행용)
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
-      tolerance: 0.5
+      tolerance: 1.0
       use_astar: true       # A* 사용 (최단경로 보장)
       allow_unknown: true    # [중요] True로 해야 맵의 회색(Unknown) 영역을 경로로 생성함
 

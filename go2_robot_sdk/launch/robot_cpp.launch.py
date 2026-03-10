@@ -93,7 +93,7 @@ class Go2NodeFactory:
             DeclareLaunchArgument('enable_image_compression', default_value='true', description='Republish camera/image_raw as camera/image_raw/compressed using image_transport'),
             DeclareLaunchArgument('joystick', default_value='true', description='Launch joystick'),
             DeclareLaunchArgument('teleop', default_value='true', description='Launch teleoperation'),
-            DeclareLaunchArgument('obstacle_avoidance', default_value='false', description='Enable obstacle avoidance'),
+            DeclareLaunchArgument('obstacle_avoidance', default_value='true', description='Enable obstacle avoidance'),
             DeclareLaunchArgument('log_level', default_value='warn', description='ROS 2 log level (debug|info|warn|error|fatal)'),
             DeclareLaunchArgument('lidar_publish_rate', default_value='5.0', description='LiDAR publish rate (Hz)'),
             DeclareLaunchArgument('lidar_downsample_step', default_value='4', description='LiDAR downsample step'),
@@ -245,7 +245,7 @@ class Go2NodeFactory:
                     ('scan', f'{namespace}/scan'),
                 ],
                 parameters=[{
-                    'target_frame': f'{namespace}/base_link',
+                    'target_frame': f'{namespace}/base_footprint',
                     'max_height': 0.1
                 }],
                 output='screen',
@@ -262,7 +262,7 @@ class Go2NodeFactory:
                     ('scan', 'scan'),
                 ],
                 parameters=[{
-                    'target_frame': 'base_link',
+                    'target_frame': 'base_footprint',
                     'max_height': 1.0
                 }],
                 output='screen',

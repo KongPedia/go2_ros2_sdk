@@ -132,6 +132,27 @@ class WebRTCAdapter(IRobotDataReceiver, IRobotController):
         except Exception as e:
             logger.error(f"Error sending movement command: {e}")
 
+    def send_wireless_controller_movement_command(
+        self, robot_id: str, x: float, y: float, z: float
+    ) -> None:
+        """Send movement command using the wireless controller input path"""
+        try:
+            command = json.dumps(
+                {
+                    "type": "msg",
+                    "topic": RTC_TOPIC["WIRELESS_CONTROLLER"],
+                    "data": {
+                        "lx": round(-y, 2),
+                        "ly": round(x, 2),
+                        "rx": round(-z, 2),
+                        "ry": 0,
+                    },
+                }
+            )
+            self.send_command(robot_id, command)
+        except Exception as e:
+            logger.error(f"Error sending wireless controller movement command: {e}")
+
     def send_stand_up_command(self, robot_id: str) -> None:
         """Send stand up command"""
         try:

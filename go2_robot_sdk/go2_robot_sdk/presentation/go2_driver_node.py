@@ -107,7 +107,7 @@ class Go2DriverNode(Node):
                 ("lidar_deduplicate", False),
                 ("lidar_intensity_threshold", 0.0),
                 ("publish_raw_voxel", False),
-                ("obstacle_avoidance", False),
+                ("obstacle_avoidance", True),
             ],
         )
 
@@ -372,15 +372,6 @@ class Go2DriverNode(Node):
     def _on_robot_validated(self, robot_id: str) -> None:
         """Callback after robot validation"""
         self.get_logger().info(f"Robot {robot_id} validated and ready")
-
-        try:
-            self.robot_control_service.set_obstacle_avoidance(
-                self.config.obstacle_avoidance, robot_id
-            )
-        except Exception as e:
-            self.get_logger().error(
-                f"Failed to apply obstacle_avoidance={self.config.obstacle_avoidance}: {e}"
-            )
 
     def _on_robot_data_received(self, msg: Dict[str, Any], robot_id: str) -> None:
         """Callback for receiving data from robot"""

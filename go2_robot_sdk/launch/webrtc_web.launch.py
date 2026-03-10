@@ -86,7 +86,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'obstacle_avoidance',
-            default_value='false',
+            default_value='true',
             description='Enable obstacle avoidance',
         ),
         DeclareLaunchArgument(
