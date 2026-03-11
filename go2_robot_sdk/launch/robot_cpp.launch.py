@@ -246,7 +246,12 @@ class Go2NodeFactory:
                 ],
                 parameters=[{
                     'target_frame': f'{namespace}/base_footprint',
-                    'max_height': 0.1
+                    'max_height': 0.1,
+                    'range_min': 0.05,
+                    'range_max': 8.0,
+                    'scan_time': 0.1,
+                    'use_inf': True,
+                    'inf_epsilon': 1.0,
                 }],
                 output='screen',
             )
@@ -263,7 +268,12 @@ class Go2NodeFactory:
                 ],
                 parameters=[{
                     'target_frame': 'base_footprint',
-                    'max_height': 1.0
+                    'max_height': 1.0,
+                    'range_min': 0.05,
+                    'range_max': 8.0,
+                    'scan_time': 0.1,
+                    'use_inf': True,
+                    'inf_epsilon': 1.0,
                 }],
                 output='screen',
             )
