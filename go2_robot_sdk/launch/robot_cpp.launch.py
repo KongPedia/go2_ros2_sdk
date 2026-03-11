@@ -270,8 +270,8 @@ class Go2NodeFactory:
                 parameters=[{
                     'target_frame': 'base_link',
                     'min_height': -0.2,
-                    'max_height': 1.0,
-                    'range_min': 0.05,
+                    'max_height': 0.2,
+                    'range_min': 0.3,
                     'range_max': 8.0,
                     'scan_time': 0.1,
                     'use_inf': True,
