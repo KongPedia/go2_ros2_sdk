@@ -107,7 +107,7 @@ class Go2DriverNode(Node):
                 ("lidar_deduplicate", False),
                 ("lidar_intensity_threshold", 0.0),
                 ("publish_raw_voxel", False),
-                ("obstacle_avoidance", True),
+                ("obstacle_avoidance", False),
             ],
         )
 
