@@ -9,11 +9,11 @@ amcl:
     # [수정] 오도메트리 노이즈 파라미터 (0.2 -> 0.05)
     # 원본: alpha1~4: 0.2 (일반적인 바퀴형 로봇)
     # 수정: 맵이 정사각형이라 라이다 매칭이 부정확하므로, 오도메트리를 더 신뢰하게 값을 낮춤
-    alpha1: 0.0
-    alpha2: 0.0
-    alpha3: 0.0
-    alpha4: 0.0
-    alpha5: 0.0
+    alpha1: 0.001
+    alpha2: 0.001
+    alpha3: 0.001
+    alpha4: 0.001
+    alpha5: 0.001
 
     base_frame_id: "base_link"
     beam_skip_distance: 0.5
@@ -234,7 +234,7 @@ local_costmap:
       footprint: "[ [0.360, 0.200], [0.360, -0.200], [-0.450, -0.200], [-0.450, 0.200] ]"
       # [변경] 원본 0.03 -> 0.05
       # 이유: footprint를 조금 더 크게 잡아 벽/장애물 최소 이격을 확보(단, 좁은 문틀 통과가 막히면 0.03~0.05에서 조정)
-      footprint_padding: 0.0
+      footprint_padding: 0.03
   
       # [수정] static_layer 제거
       # 로컬 맵은 센서 데이터(Voxel/Obstacle)만 보는 것이 회색 영역 주행에 유리함
@@ -296,7 +296,7 @@ global_costmap:
       footprint: "[ [0.380, 0.230], [0.380, -0.230], [-0.480, -0.230], [-0.480, 0.230] ]"
       # [변경] 원본 0.03 -> 0.05
       # 이유: 글로벌 플래너도 로봇 외곽을 조금 더 보수적으로 잡아 벽 근접 경로 생성을 줄임
-      footprint_padding: 0.0
+      footprint_padding: 0.03
 
       # [수정] Obstacle Layer 추가
       # 원본: ["static_layer", "voxel_layer", "inflation_layer"]
