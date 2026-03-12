@@ -6,7 +6,6 @@ import logging
 
 
 from ...domain.interfaces import IRobotController
-from ..utils.command_generator import gen_mov_command
 from ...domain.constants import RTC_TOPIC
 
 
@@ -23,12 +22,6 @@ class RobotControlService:
         """Process movement command"""
         try:
             if x != 0.0 or y != 0.0 or z != 0.0:
-                _ = gen_mov_command(
-                    round(x, 2),
-                    round(y, 2),
-                    round(z, 2),
-                    obstacle_avoidance,
-                )
                 self.controller.send_movement_command(robot_id, x, y, z)
         except Exception as e:
             logger.error(f"Error handling cmd_vel: {e}")
@@ -70,4 +63,12 @@ class RobotControlService:
             )
             logger.info(f"Obstacle avoidance set to {enabled} for robot {robot_id}")
         except Exception as e:
-            logger.error(f"Error setting obstacle avoidance: {e}") 
+            logger.error(f"Error setting obstacle avoidance: {e}")
+
+    def set_free_avoid(self, enabled: bool, robot_id: str) -> None:
+        """Set FreeAvoid mode in sport API."""
+        try:
+            self.controller.send_free_avoid_command(robot_id, enabled)
+            logger.info(f"Free avoid set to {enabled} for robot {robot_id}")
+        except Exception as e:
+            logger.error(f"Error setting free avoid: {e}")

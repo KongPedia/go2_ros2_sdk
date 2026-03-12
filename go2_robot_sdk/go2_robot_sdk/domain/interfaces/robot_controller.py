@@ -13,6 +13,13 @@ class IRobotController(ABC):
         pass
 
     @abstractmethod
+    def send_wireless_controller_movement_command(
+        self, robot_id: str, x: float, y: float, z: float
+    ) -> None:
+        """Send movement command using the wireless controller input path"""
+        pass
+
+    @abstractmethod
     def send_stand_up_command(self, robot_id: str) -> None:
         """Send stand up command"""
         pass
@@ -23,6 +30,11 @@ class IRobotController(ABC):
         pass
 
     @abstractmethod
+    def send_free_avoid_command(self, robot_id: str, enabled: bool) -> None:
+        """Enable or disable FreeAvoid mode in sport API"""
+        pass
+
+    @abstractmethod
     def send_webrtc_request(self, robot_id: str, api_id: int, parameter: str, topic: str) -> None:
         """Send WebRTC request"""
-        pass 
+        pass

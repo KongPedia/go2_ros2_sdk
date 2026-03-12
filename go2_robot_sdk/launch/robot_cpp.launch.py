@@ -94,9 +94,10 @@ class Go2NodeFactory:
             DeclareLaunchArgument('joystick', default_value='true', description='Launch joystick'),
             DeclareLaunchArgument('teleop', default_value='true', description='Launch teleoperation'),
             DeclareLaunchArgument('obstacle_avoidance', default_value='false', description='Enable obstacle avoidance'),
+            DeclareLaunchArgument('free_avoid', default_value='false', description='Enable FreeAvoid sport mode'),
             DeclareLaunchArgument('log_level', default_value='warn', description='ROS 2 log level (debug|info|warn|error|fatal)'),
-            DeclareLaunchArgument('lidar_publish_rate', default_value='5.0', description='LiDAR publish rate (Hz)'),
-            DeclareLaunchArgument('lidar_downsample_step', default_value='4', description='LiDAR downsample step'),
+            DeclareLaunchArgument('lidar_publish_rate', default_value='10.0', description='LiDAR publish rate (Hz)'),
+            DeclareLaunchArgument('lidar_downsample_step', default_value='3', description='LiDAR downsample step'),
             DeclareLaunchArgument('lidar_max_points', default_value='25000', description='LiDAR max points'),
             DeclareLaunchArgument('lidar_deduplicate', default_value='false', description='Deduplicate LiDAR points'),
             DeclareLaunchArgument('use_cpp_lidar_accel', default_value='true', description='Enable C++ LiDAR acceleration (pybind11)'),
@@ -246,7 +247,13 @@ class Go2NodeFactory:
                 ],
                 parameters=[{
                     'target_frame': f'{namespace}/base_link',
-                    'max_height': 0.1
+                    'min_height': -0.2,
+                    'max_height': 0.1,
+                    'range_min': 0.05,
+                    'range_max': 8.0,
+                    'scan_time': 0.1,
+                    'use_inf': True,
+                    'inf_epsilon': 1.0,
                 }],
                 output='screen',
             )
@@ -263,7 +270,13 @@ class Go2NodeFactory:
                 ],
                 parameters=[{
                     'target_frame': 'base_link',
-                    'max_height': 1.0
+                    'min_height': -0.2,
+                    'max_height': 0.2,
+                    'range_min': 0.3,
+                    'range_max': 8.0,
+                    'scan_time': 0.1,
+                    'use_inf': True,
+                    'inf_epsilon': 1.0,
                 }],
                 output='screen',
             )
@@ -280,6 +293,7 @@ class Go2NodeFactory:
             LaunchConfiguration('lidar_intensity_threshold'), value_type=float
         )
         obstacle_avoidance = ParameterValue(LaunchConfiguration('obstacle_avoidance'), value_type=bool)
+        free_avoid = ParameterValue(LaunchConfiguration('free_avoid'), value_type=bool)
         return [
             # Main robot driver (clean architecture)
             Node(
@@ -293,6 +307,7 @@ class Go2NodeFactory:
                     'token': self.config.robot_token,
                     'conn_type': self.config.conn_type,
                     'obstacle_avoidance': obstacle_avoidance,
+                    'free_avoid': free_avoid,
                     'lidar_publish_rate': lidar_publish_rate,
                     'lidar_downsample_step': lidar_downsample_step,
                     'lidar_max_points': lidar_max_points,
