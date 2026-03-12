@@ -172,6 +172,19 @@ class WebRTCAdapter(IRobotDataReceiver, IRobotController):
         except Exception as e:
             logger.error(f"Error sending stand down command: {e}")
 
+    def send_free_avoid_command(self, robot_id: str, enabled: bool) -> None:
+        """Enable or disable FreeAvoid mode via sport mode API."""
+        try:
+            free_avoid_cmd = gen_command(
+                ROBOT_CMD["FreeAvoid"],
+                {"data": enabled},
+                RTC_TOPIC["SPORT_MOD"],
+            )
+            logger.warning(f"Sending FreeAvoid command: enabled={enabled}, cmd={free_avoid_cmd[:100]}")
+            self.send_command(robot_id, free_avoid_cmd)
+        except Exception as e:
+            logger.error(f"Error sending free avoid command: {e}")
+
     def send_webrtc_request(self, robot_id: str, api_id: int, parameter: Any, topic: str) -> None:
         """Send WebRTC request"""
         try:
@@ -200,6 +213,9 @@ class WebRTCAdapter(IRobotDataReceiver, IRobotController):
                 for topic in RTC_TOPIC.values():
                     self.connections[robot_id].data_channel.send(
                         json.dumps({"type": "subscribe", "topic": topic}))
+            
+            logger.info(f"Setting FreeAvoid to {self.config.free_avoid} on connection for robot {robot_id}")
+            self.send_free_avoid_command(robot_id, self.config.free_avoid)
             
             if self.on_validated_callback:
                 self.on_validated_callback(robot_id)

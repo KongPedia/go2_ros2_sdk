@@ -91,6 +91,13 @@ class Go2DriverNode(Node):
             "on",
         )
 
+        free_avoid_default = os.getenv("FREE_AVOID", "false").strip().lower() in (
+            "1",
+            "true",
+            "yes",
+            "on",
+        )
+
         # Declare parameters
         self.declare_parameters(
             namespace="",
@@ -108,6 +115,7 @@ class Go2DriverNode(Node):
                 ("lidar_intensity_threshold", 0.0),
                 ("publish_raw_voxel", False),
                 ("obstacle_avoidance", False),
+                ("free_avoid", free_avoid_default),
             ],
         )
 
@@ -147,6 +155,7 @@ class Go2DriverNode(Node):
             obstacle_avoidance=self.get_parameter("obstacle_avoidance")
             .get_parameter_value()
             .bool_value,
+            free_avoid=self.get_parameter("free_avoid").get_parameter_value().bool_value,
             use_cpp_lidar_accel=self.get_parameter("use_cpp_lidar_accel")
             .get_parameter_value()
             .bool_value,
@@ -168,6 +177,7 @@ class Go2DriverNode(Node):
         )
         self.get_logger().info(f"Publish raw voxel: {config.publish_raw_voxel}")
         self.get_logger().info(f"Obstacle avoidance: {config.obstacle_avoidance}")
+        self.get_logger().info(f"Free avoid: {config.free_avoid}")
 
         return config
 
@@ -341,6 +351,22 @@ class Go2DriverNode(Node):
 
                     result.successful = True
                     result.reason = "Updated obstacle_avoidance"
+                    break
+
+                if p.name == "free_avoid":
+                    self.get_logger().info(f"New free_avoid value: {p.value}")
+                    self.config.free_avoid = p.value
+
+                    try:
+                        self.robot_control_service.set_free_avoid(p.value, "0")
+                    except Exception as e:
+                        self.get_logger().error(f"Failed to set free avoid: {e}")
+                        result.successful = False
+                        result.reason = str(e)
+                        break
+
+                    result.successful = True
+                    result.reason = "Updated free_avoid"
                     break
         except Exception as e:
             self.get_logger().error(f"Error setting parameters: {e}")

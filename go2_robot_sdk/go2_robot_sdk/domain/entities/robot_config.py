@@ -17,6 +17,7 @@ class RobotConfig:
     use_cpp_lidar_accel: bool
     publish_raw_voxel: bool
     obstacle_avoidance: bool
+    free_avoid: bool
     lidar_publish_rate: float
     lidar_downsample_step: int
     lidar_max_points: int
@@ -34,6 +35,7 @@ class RobotConfig:
         decode_lidar: bool,
         publish_raw_voxel: bool,
         obstacle_avoidance: bool,
+        free_avoid: bool,
         use_cpp_lidar_accel: bool = True,
         lidar_publish_rate: float = 5.0,
         lidar_downsample_step: int = 4,
@@ -58,6 +60,7 @@ class RobotConfig:
             use_cpp_lidar_accel=use_cpp_lidar_accel,
             publish_raw_voxel=publish_raw_voxel,
             obstacle_avoidance=obstacle_avoidance,
+            free_avoid=free_avoid,
             lidar_publish_rate=lidar_publish_rate,
             lidar_downsample_step=lidar_downsample_step,
             lidar_max_points=lidar_max_points,

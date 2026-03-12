@@ -30,6 +30,11 @@ class IRobotController(ABC):
         pass
 
     @abstractmethod
+    def send_free_avoid_command(self, robot_id: str, enabled: bool) -> None:
+        """Enable or disable FreeAvoid mode in sport API"""
+        pass
+
+    @abstractmethod
     def send_webrtc_request(self, robot_id: str, api_id: int, parameter: str, topic: str) -> None:
         """Send WebRTC request"""
         pass

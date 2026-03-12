@@ -53,6 +53,7 @@ ROBOT_CMD = {
     "OnesidedStep": 1303,
     "CrossStep": 1302,
     "Handstand": 1301,
+    "FreeAvoid": 2048,
     # VUI (Visual User Interface) commands
     "VuiSetSwitch": 1001,
     "VuiGetSwitch": 1002,
