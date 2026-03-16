@@ -125,9 +125,9 @@ controller_server:
     use_sim_time: False
 
     # [수정] 제어 주기 (3.0 -> 10.0 Hz)
-    # 원본: 3.0 (너무 느려서 장애물 반응 늦음)
-    # 수정: 10.0 (Jetson에서 충분히 처리가능하며 장애물 회피 반응성 확보)
-    controller_frequency: 10.0
+    # 원본: 3.0    # [수정] 원본 5.0 -> 20.0
+    # FreeAvoid 환경: 20Hz로 높여 실시간 trajectory 변화에 빠르게 대응
+    controller_frequency: 20.0
 
     min_x_velocity_threshold: 0.001
     min_y_velocity_threshold: 0.001
@@ -135,6 +135,10 @@ controller_server:
     failure_tolerance: 0.3
     progress_checker_plugin: "progress_checker"
     goal_checker_plugins: ["general_goal_checker"]
+    current_goal_checker: "general_goal_checker"
+    
+    # [전략] Controller는 경로 추종만, 장애물 회피는 SDK FreeAvoid에 의존
+    # Nav2 controller는 최소한의 경로 추종만 수행
     controller_plugins: ["FollowPath"]
 
     progress_checker:
@@ -145,75 +149,49 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.25
-      yaw_goal_tolerance: 0.25
+      xy_goal_tolerance: 0.5  # 0.25 -> 0.5 (목표 지점 근처 도착 시 성공 판정)
+      yaw_goal_tolerance: 0.5  # 0.25 -> 0.5 (~28도, 방향 허용 오차 증가)
 
-    # DWB parameters
+    # ============================================================================
+    # Pure Pursuit Controller - 단순 경로 추종만 수행
+    # ============================================================================
+    # 역할: Nav2 경로를 따라가기만 함 (장애물 회피 X)
+    # 장애물 회피: SDK FreeAvoid (command 2048)에 전적으로 의존
     FollowPath:
-      plugin: "dwb_core::DWBLocalPlanner"
-      debug_trajectory_details: False
-      min_vel_x: 0.0
-      min_vel_y: 0.0
-
-      # [수정] 최대 속도 제한 (2.0 -> 0.5)
-      # 원본: 3.0 -> 2.0 -> 0.5 (안전 저속 주행)
-      max_vel_x: 0.5
-      max_vel_y: 0.25
-      max_vel_theta: 0.4
-
-      min_speed_xy: 0.05
-      max_speed_xy: 0.55
-      min_speed_theta: 0.0
-
-      # [수정] 가속도 제한 (1.5 -> 0.8)
-      # 저속에 맞게 가속도도 비례 감소
-      acc_lim_x: 0.8
-      acc_lim_y: 0.35
-      acc_lim_theta: 0.4
-      decel_lim_x: -0.8
-      decel_lim_y: -0.35
-      decel_lim_theta: -0.4
-
-      vx_samples: 12
-      vy_samples: 3
-      vtheta_samples: 12
-      # [변경] 원본 1.5 -> 2.0
-      # 이유: 더 먼 미래 궤적까지 평가해서 장애물을 더 일찍 인지/우회(단, 너무 보수적이면 1.5~2.0에서 재조정)
-      sim_time: 1.5
-      linear_granularity: 0.05
-      angular_granularity: 0.025
-      transform_tolerance: 0.2
-      xy_goal_tolerance: 0.25
-      trans_stopped_velocity: 0.02
-      short_circuit_trajectory_evaluation: True
-      stateful: True
-      critics: ["RotateToGoal", "Oscillation", "BaseObstacle", "GoalAlign", "PathAlign", "PathDist", "GoalDist"]
-      BaseObstacle:
-        # [변경] 원본 0.02 -> 0.14
-        # 이유: 장애물(costmap) 근접 페널티를 키워 벽/장애물에 너무 바짝 붙는 현상 완화
-        scale: 0.35
-      PathAlign:
-        # [변경] 원본 24.0 -> 18.0
-        # 이유: 경로를 과도하게 고집하면 회피 시에도 벽 쪽으로 붙는 경우가 있어, 회피에 여유를 주기 위해 완화
-        scale: 18.0
-        forward_point_distance: 0.1
-      GoalAlign:
-        # [변경] 원본 20.0 -> 16.0
-        # 이유: 목표 정렬을 과도하게 고집하면 좁은 공간에서 불필요한 근접 주행/진동이 생길 수 있어 완화
-        scale: 16.0
-        forward_point_distance: 0.1
-      PathDist:
-        # [변경] 원본 32.0 -> 22.0
-        # 이유: 경로 거리 비용을 낮춰 장애물 우회 시 경로에서 약간 벗어나는 선택을 허용(큰 우회/부드러운 회피)
-        scale: 24.0
-      GoalDist:
-        # [변경] 원본 24.0 -> 20.0
-        # 이유: 목표로의 직진 성향을 약간 낮춰, 장애물 앞에서 더 큰 우회 궤적을 허용
-        scale: 16.0
-      RotateToGoal:
-        scale: 8.0
-        slowing_factor: 5.0
-        lookahead_time: -1.0
+      plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
+      desired_linear_vel: 0.8  # 0.5 -> 0.8 (속도 증가)
+      # [FreeAvoid 최적화] lookahead 증가: path deviation 대응
+      lookahead_dist: 0.8  # 0.6 -> 0.8
+      min_lookahead_dist: 0.4  # 0.3 -> 0.4
+      max_lookahead_dist: 1.2  # 0.9 -> 1.2
+      lookahead_time: 1.5
+      rotate_to_heading_angular_vel: 0.4
+      transform_tolerance: 0.1
+      # [FreeAvoid 최적화] 속도 변화에 따른 lookahead 조정
+      use_velocity_scaled_lookahead_dist: true  # false -> true
+      min_approach_linear_velocity: 0.05
+      approach_velocity_scaling_dist: 0.6
+      
+      # [비활성화] Collision Detection - SDK FreeAvoid에 맡김
+      use_collision_detection: false
+      max_allowed_time_to_collision_up_to_carrot: 2.0
+      
+      # [비활성화] Cost-based Velocity Scaling - SDK FreeAvoid에 맡김
+      use_cost_regulated_linear_velocity_scaling: false
+      
+      # [FreeAvoid 최적화] Regulated Linear Velocity Scaling 완화
+      use_regulated_linear_velocity_scaling: true
+      regulated_linear_scaling_min_radius: 1.5  # 0.9 -> 1.5 (FreeAvoid deviation 허용)
+      regulated_linear_scaling_min_speed: 0.25
+      
+      use_rotate_to_heading: false
+      allow_reversing: false
+      
+      # [FreeAvoid 최적화] 회전 임계값 완화 (path oscillation 방지)
+      rotate_to_heading_min_angle: 0.35  # 0.26 -> 0.35 (20도)
+      max_angular_accel: 0.4
+      max_robot_pose_search_dist: 10.0
+      use_interpolation: false
 
 local_costmap:
   local_costmap:
@@ -236,14 +214,14 @@ local_costmap:
       # 이유: footprint를 조금 더 크게 잡아 벽/장애물 최소 이격을 확보(단, 좁은 문틀 통과가 막히면 0.03~0.05에서 조정)
       footprint_padding: 0.03
   
-      # [수정] static_layer 제거
-      # 로컬 맵은 센서 데이터(Voxel/Obstacle)만 보는 것이 회색 영역 주행에 유리함
-      plugins: ["obstacle_layer", "inflation_layer"]
+      # [수정] static_layer 복원, inflation_layer는 제거 유지
+      # 이유: Controller가 맵의 벽을 인식해야 경로 생성 가능
+      # Inflation은 제거하여 SDK FreeAvoid에 회피 맡김
+      plugins: ["static_layer", "obstacle_layer"]
 
-      # [주석 처리된 원본]
-      # static_layer:
-      #   plugin: "nav2_costmap_2d::StaticLayer"
-      #   map_subscribe_transient_local: True
+      static_layer:
+        plugin: "nav2_costmap_2d::StaticLayer"
+        map_subscribe_transient_local: True
 
       obstacle_layer:
         plugin: "nav2_costmap_2d::ObstacleLayer"
@@ -268,14 +246,13 @@ local_costmap:
           obstacle_max_range: 7.0
           obstacle_min_range: 0.0
 
-      inflation_layer:
-        plugin: "nav2_costmap_2d::InflationLayer"
-        # [변경] cost_scaling_factor 2.5 -> 5.0
-        # 이유: 장애물 주변 비용을 급격히 감소시켜 좁은 통로 통과 가능하게 함
-        cost_scaling_factor: 5.0
-        # [변경] inflation_radius 0.45 -> 0.15
-        # 이유: 장애물 주변 팽창 반경을 최소화하여 벽에 최대한 근접 가능하게 함 (내장 회피 기능 활용)
-        inflation_radius: 0.35
+      # [비활성화] inflation_layer 제거
+      # 이유: Costmap은 장애물 위치만 표시하고, 실제 회피 거리는 controller가 결정하도록 함
+      # Controller의 collision detection과 free avoid 기능에 전적으로 의존
+      # inflation_layer:
+      #   plugin: "nav2_costmap_2d::InflationLayer"
+      #   cost_scaling_factor: 5.0
+      #   inflation_radius: 0.35
 
 global_costmap:
   global_costmap:
@@ -294,14 +271,14 @@ global_costmap:
 
       static_map: True
       footprint: "[ [0.380, 0.230], [0.380, -0.230], [-0.480, -0.230], [-0.480, 0.230] ]"
-      # [변경] 원본 0.03 -> 0.05
-      # 이유: 글로벌 플래너도 로봇 외곽을 조금 더 보수적으로 잡아 벽 근접 경로 생성을 줄임
-      footprint_padding: 0.03
+      # [최소화] 벽 근처 목표 허용을 위해 padding 최소화
+      footprint_padding: 0.01  # 0.03 -> 0.01
 
-      # [수정] Obstacle Layer 추가
+      # [수정] Obstacle Layer 추가, inflation_layer 최소화
       # 원본: ["static_layer", "voxel_layer", "inflation_layer"]
       # 수정: Voxel(3D) 대신 Obstacle(2D) 레이어 사용 권장 (Jetson 부하 감소 및 설정 단순화)
       #      반드시 센서 데이터(obstacle_layer)가 있어야 맵에 없는 장애물을 피해서 경로를 생성함.
+      # Global은 경로 계획용이므로 최소한의 inflation 유지 (local은 완전 제거)
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
 
       static_layer:
@@ -342,12 +319,14 @@ global_costmap:
 
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        # [변경] cost_scaling_factor 3.0 -> 5.0
-        # 이유: 벽 주변 비용을 급격히 감소시켜 좁은 통로 경로 생성 가능하게 함
-        cost_scaling_factor: 5.0
-        # [변경] inflation_radius 0.40 -> 0.15
-        # 이유: 맵 벽 주변 팽창 반경을 최소화하여 좁은 통로로의 경로 생성 가능하게 함
-        inflation_radius: 0.30
+        # [변경] cost_scaling_factor 3.0 -> 20.0
+        # 이유: 벽 주변 비용을 매우 급격히 감소시켜 inflation 영향 최소화
+        # Global은 경로 계획만 담당하고, 실제 회피는 controller에 맡김
+        cost_scaling_factor: 20.0
+        # [변경] inflation_radius 0.40 -> 0.10
+        # 이유: 맵 벽 주변 팽창 반경을 최소화 (footprint 크기 정도만 유지)
+        # Local costmap은 inflation 완전 제거, Global은 최소한만 유지
+        inflation_radius: 0.10
 
 map_server:
   ros__parameters:
@@ -373,7 +352,8 @@ planner_server:
     # [교체된 블록] NavFnPlanner (가볍고 일반적인 주행용)
     GridBased:
       plugin: "nav2_navfn_planner/NavfnPlanner"
-      tolerance: 2.0
+      # [증가] 벽 근처 목표 허용을 위해 tolerance 증가
+      tolerance: 0.5  # 2.0 -> 0.5 (정확한 목표 지점 사용)
       use_astar: true       # A* 사용 (최단경로 보장)
       allow_unknown: true    # [중요] True로 해야 맵의 회색(Unknown) 영역을 경로로 생성함
 
@@ -421,12 +401,14 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: false
     feedback: "OPEN_LOOP"
-    max_velocity: [0.5, 0.0, 0.4]
-    min_velocity: [-0.5, 0.0, -0.4]
+    # [속도 증가] max_velocity 0.5 -> 0.8 m/s
+    max_velocity: [0.6, 0.0, 0.6]  # [linear_x, linear_y, angular_z]
+    min_velocity: [-0.6, 0.0, -0.6]
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-    max_accel: [0.8, 0.0, 0.4]
-    max_decel: [-0.8, 0.0, -0.4]
+    # [가속도 증가] 더 빠른 가속/감속
+    max_accel: [1.0, 0.0, 1.0]  # 0.8 -> 1.2
+    max_decel: [-1.0, 0.0, -1.0]  # -0.8 -> -1.2
     odom_topic: "odom"
     odom_duration: 0.1
     use_realtime_priority: false
