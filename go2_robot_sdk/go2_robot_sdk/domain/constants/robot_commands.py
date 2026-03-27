@@ -54,6 +54,9 @@ ROBOT_CMD = {
     "CrossStep": 1302,
     "Handstand": 1301,
     "FreeAvoid": 2048,
+    # Raw SPORT_MOD API helpers used by go2_dimos when leaving pose mode
+    "ClassicWalkDisable": 2049,
+    "FreeWalkRestore": 2045,
     # VUI (Visual User Interface) commands
     "VuiSetSwitch": 1001,
     "VuiGetSwitch": 1002,
@@ -62,4 +65,4 @@ ROBOT_CMD = {
     "VuiSetBrightness": 1005,
     "VuiGetBrightness": 1006,
     "VuiSetColor": 1007,
-} 
+}
